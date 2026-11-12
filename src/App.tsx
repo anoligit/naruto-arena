@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { Character } from './data/characters'
 import StartPlaying from './pages/StartPlaying'
 import './App.css'
 
@@ -6,6 +7,7 @@ type Page = 'startpage' | 'start-playing'
 const readPage = (): Page => window.location.hash === '#start-playing' ? 'start-playing' : 'startpage'
 
 function App() {
+  const [team, setTeam] = useState<(Character | null)[]>([null, null, null])
   const [page, setPage] = useState<Page>(readPage)
 
   useEffect(() => {
@@ -31,7 +33,14 @@ function App() {
       </aside>
 
       <aside className="info-column blue-panel" aria-label="Game information">
-        <section><h2>Your team awaits</h2><div className="team-preview" aria-hidden="true"><span>1</span><span>2</span><span>3</span></div><p>Choose three ninjas in Start Playing.</p></section>
+        <section aria-labelledby="team-preview-title">
+          <h2 id="team-preview-title">Your Team</h2>
+          <ol className="team-preview" aria-label="Selected team">
+            {team.map((member, index) => <li key={index} className={member ? 'filled' : ''} aria-label={`Slot ${index + 1}: ${member?.name ?? 'Empty'}`}>{member?.name ?? index + 1}</li>)}
+          </ol>
+          <p aria-live="polite">{team.filter(Boolean).length}/3 characters selected</p>
+          <a href="#start-playing">{team.some(Boolean) ? 'Edit your team »' : 'Choose your team »'}</a>
+        </section>
         <section><h2>First time playing?</h2><p>Inspect each ninja’s skills, then build your team of three different characters.</p><a href="#start-playing">Try character selection »</a></section>
         <section><h2>Season</h2><p>No active season. Seasons will be available when online battles are implemented.</p></section>
         <section><h2>Rankings</h2><p>No rankings yet. Your future results will appear here.</p></section>
@@ -48,7 +57,7 @@ function App() {
           </section>
           <section hidden={page !== 'start-playing'} aria-labelledby="playing-title" className="playing-page">
             <h1 id="playing-title">Start Playing</h1><p className="tagline">Select your team</p>
-            <StartPlaying />
+            <StartPlaying team={team} setTeam={setTeam} />
           </section>
         </main>
         <footer>Fan project · In development</footer>

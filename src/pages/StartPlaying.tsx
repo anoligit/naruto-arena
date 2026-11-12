@@ -1,18 +1,17 @@
 
 import { useState } from 'react'
-import type { DragEvent, MouseEvent } from 'react'
+import type { Dispatch, SetStateAction, DragEvent, MouseEvent } from 'react'
 import { characters } from '../data/characters'
 import type { Character } from '../data/characters'
 import '../Game.css'
 
-function StartPlaying() {
-  const [selectedCharacter, setSelectedCharacter] = useState(characters[0])
+type StartPlayingProps = {
+  team: (Character | null)[]
+  setTeam: Dispatch<SetStateAction<(Character | null)[]>>
+}
 
-  const [team, setTeam] = useState<(Character | null)[]>([
-    null,
-    null,
-    null,
-  ])
+function StartPlaying({ team, setTeam }: StartPlayingProps) {
+  const [selectedCharacter, setSelectedCharacter] = useState(characters[0])
 
   function addToTeam(character: Character) {
     setTeam((currentTeam) => {
