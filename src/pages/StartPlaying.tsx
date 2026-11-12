@@ -83,16 +83,39 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
     <div className="game">
       <p className="selection-help">Click to view skills. Double-click or drag to add to your team. Right-click a team member to remove.</p>
       <section className="character-details">
-        <h2>{selectedCharacter.name}</h2>
+  <h2>{selectedCharacter.name}</h2>
 
-        <div className="skills">
-          {selectedCharacter.skills.map((skill) => (
-            <div className="skill" key={skill}>
-              {skill}
-            </div>
-          ))}
+  <div className="character-details-top">
+    <div className="portrait-slot">
+      {selectedCharacter.image ? (
+        <img
+          src={`${import.meta.env.BASE_URL}${selectedCharacter.image}`}
+          alt={selectedCharacter.name}
+          className="character-portrait"
+          draggable={false}
+        />
+      ) : (
+        <span>{selectedCharacter.name}</span>
+      )}
+    </div>
+
+    <div className="skills">
+      {selectedCharacter.skills.map((skill) => (
+        <div className="skill" key={skill} title={skill}>
+          {selectedCharacter.skillImages?.[skill] ? (
+            <img
+              src={`${import.meta.env.BASE_URL}${selectedCharacter.skillImages[skill]}`}
+              alt={skill}
+              draggable={false}
+            />
+          ) : (
+            skill
+          )}
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
       <nav className="game-menu">
         <span>Game modes · Coming soon</span>
@@ -116,9 +139,24 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
                 draggable={!isInTeam}
                 onClick={() => setSelectedCharacter(character)}
                 onDoubleClick={() => addToTeam(character)}
+                onContextMenu={(event) => {
+                  event.preventDefault()
+                  addToTeam(character)
+                }}
                 onDragStart={(event) => handleDragStart(event, character)}
               >
-                {character.name}
+                {character.image ? (
+                  <img
+                    src={`${import.meta.env.BASE_URL}${character.image}`}
+                    alt={character.name}
+                    width={48}
+                    height={48}
+                    draggable={false}
+                  />
+                ) : (
+                  character.name
+                )}
+
               </button>
             )
           })}
@@ -141,7 +179,17 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
                 onContextMenu={(event) => handleRightClick(event, index)}
                 title={member ? 'Right-click to remove' : 'Drop a character here'}
               >
-                {member ? <button className="remove-character" onClick={() => removeFromTeam(index)} aria-label={`Remove ${member.name}`}>{member.name} ×</button> : index + 1}
+                {member ? <button className="remove-character" onClick={() => removeFromTeam(index)} aria-label={`Remove ${member.name}`}>{member.image ? (
+  <img
+    src={`${import.meta.env.BASE_URL}${member.image}`}
+    alt={member.name}
+    width={50}
+    height={50}
+    draggable={false}
+  />
+) : (
+  member.name
+)}</button> : index + 1}
               </div>
             ))}
           </div>

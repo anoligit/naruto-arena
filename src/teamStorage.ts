@@ -1,7 +1,7 @@
 import { characters } from './data/characters'
 import type { Character } from './data/characters'
 
-const TEAM_KEY = 'naruto-arena:team:v1'
+export const TEAM_KEY = 'naruto-arena:team:v1'
 
 export function loadTeam(): (Character | null)[] {
   const emptyTeam = (): (Character | null)[] => [null, null, null]

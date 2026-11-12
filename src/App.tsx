@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Character } from './data/characters'
-import { loadTeam, saveTeam } from './teamStorage'
+import { loadTeam, saveTeam, TEAM_KEY } from './teamStorage'
 import StartPlaying from './pages/StartPlaying'
 import './App.css'
 
@@ -18,6 +18,16 @@ function App() {
   useEffect(() => {
     saveTeam(team)
   }, [team])
+
+  useEffect(() => {
+    function handleStorage(event: StorageEvent) {
+      if (event.storageArea !== window.localStorage) return
+      if (event.key !== TEAM_KEY && event.key !== null) return
+      setTeam(loadTeam())
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)   
+}, [])
 
   useEffect(() => {
     const handleNavigation = () => setPage(readPage())
@@ -43,7 +53,7 @@ function App() {
               window.open(
                 '#game',
                 'narutoArenaGame',
-                'popup=yes,width=900,height=900,resizable=yes,scrollbars=yes'
+                'popup=yes,width=1220,height=890,resizable=yes,scrollbars=yes'
               )
               }}
               >
