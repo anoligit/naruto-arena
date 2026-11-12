@@ -4,8 +4,12 @@ import { loadTeam, saveTeam } from './teamStorage'
 import StartPlaying from './pages/StartPlaying'
 import './App.css'
 
-type Page = 'startpage' | 'start-playing'
-const readPage = (): Page => window.location.hash === '#start-playing' ? 'start-playing' : 'startpage'
+type Page = 'startpage' | 'start-playing' | 'game'
+const readPage = (): Page => {
+  if (window.location.hash === '#game') return 'game'
+  if (window.location.hash === '#start-playing') return 'start-playing'
+  return 'startpage'
+}
 
 function App() {
   const [team, setTeam] = useState<(Character | null)[]>(loadTeam)
@@ -21,13 +25,31 @@ function App() {
     return () => window.removeEventListener('hashchange', handleNavigation)
   }, [])
 
+  if (page === 'game') {
+    return <StartPlaying team={team} setTeam={setTeam} />
+  }
+
   return (
     <div className="site-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <aside className="left-column" aria-label="Navigation and account">
         <nav className="main-menu" aria-label="Main navigation">
           <a href="#startpage" aria-current={page === 'startpage' ? 'page' : undefined}>Startpage</a>
-          <a href="#start-playing" aria-current={page === 'start-playing' ? 'page' : undefined}>Start Playing</a>
+          <a 
+            href="#game" 
+            onClick={(event) => {
+              event.preventDefault()
+             
+              window.open(
+                '#game',
+                'narutoArenaGame',
+                'popup=yes,width=900,height=900,resizable=yes,scrollbars=yes'
+              )
+              }}
+              >
+              Start Playing
+              </a>
+
           {['Game Manual', 'Ladders', 'Ninja Missions'].map((label) => <button key={label} disabled title="Coming in a future update">{label}<small>Coming soon</small></button>)}
         </nav>
         <div className="blue-panel">
