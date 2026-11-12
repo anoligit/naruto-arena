@@ -1,6 +1,6 @@
 
 import { useState } from 'react'
-import type { Dispatch, SetStateAction, DragEvent, MouseEvent } from 'react'
+import type { Dispatch, SetStateAction, DragEvent } from 'react'
 import { characters } from '../data/characters'
 import type { Character } from '../data/characters'
 import '../Game.css'
@@ -11,7 +11,9 @@ type StartPlayingProps = {
 }
 
 function StartPlaying({ team, setTeam }: StartPlayingProps) {
-  const [selectedCharacter, setSelectedCharacter] = useState(characters[0])
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
+
+  const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
 
   function addToTeam(character: Character) {
     setTeam((currentTeam) => {
@@ -74,48 +76,128 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
     }
   }
 
-  function handleRightClick(event: MouseEvent<HTMLDivElement>, slotIndex: number) {
+  function handleReturnToCatalog(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
-    removeFromTeam(slotIndex)
+    const characterId = event.dataTransfer.getData('teamCharacterId')
+    if (!characterId) return
+
+    setTeam((currentTeam) => currentTeam.map((member) =>
+      member?.id === characterId ? null : member
+    ))
   }
 
+  function toggleCharacterDetails(character: Character) {
+  setSelectedSkill(null)
+  setSelectedCharacter((current) =>
+    current?.id === character.id ? null : character
+  )
+}
+
   return (
-    <div className="game">
-      <p className="selection-help">Click to view skills. Double-click or drag to add to your team. Right-click a team member to remove.</p>
-      <section className="character-details">
-  <h2>{selectedCharacter.name}</h2>
+    <div
+  className="game"
+  onClick={(event) => {
+    const target = event.target as HTMLElement
 
-  <div className="character-details-top">
-    <div className="portrait-slot">
-      {selectedCharacter.image ? (
-        <img
-          src={`${import.meta.env.BASE_URL}${selectedCharacter.image}`}
-          alt={selectedCharacter.name}
-          className="character-portrait"
-          draggable={false}
-        />
-      ) : (
-        <span>{selectedCharacter.name}</span>
-      )}
-    </div>
+    if (
+      target.closest(
+        'button, a, input, select, textarea, .skill, .portrait-slot'
+      )
+    ) {
+      return
+    }
 
-    <div className="skills">
-      {selectedCharacter.skills.map((skill) => (
-        <div className="skill" key={skill} title={skill}>
-          {selectedCharacter.skillImages?.[skill] ? (
+    setSelectedSkill(null)
+    setSelectedCharacter(null)
+  }}
+>
+      <p className="selection-help">Left-click to view skills. Double-click or right-click to add from the catalog or remove from your team. Drag with the left button between the catalog and your team to add or remove.</p>
+      <section
+  className="character-details"
+  style={{ visibility: selectedCharacter ? 'visible' : 'hidden' }}
+>
+  {selectedCharacter && (
+    <>
+      <h2>{selectedCharacter.name}</h2>
+
+      <div className="character-details-top">
+        <button
+          type="button"
+          className="portrait-slot"
+          aria-label={`View description for ${selectedCharacter.name}`}
+          aria-pressed={selectedSkill === null}
+          onClick={() => setSelectedSkill(null)}
+        >
+          {selectedCharacter.image ? (
             <img
-              src={`${import.meta.env.BASE_URL}${selectedCharacter.skillImages[skill]}`}
-              alt={skill}
+              src={`${import.meta.env.BASE_URL}${selectedCharacter.image}`}
+              alt={selectedCharacter.name}
+              className="character-portrait"
               draggable={false}
             />
           ) : (
-            skill
+            <span>{selectedCharacter.name}</span>
           )}
+        </button>
+
+        <div className="skills">
+          {selectedCharacter.skills.map((skill) => (
+            <button
+              type="button"
+              className="skill"
+              key={skill}
+              title={skill}
+              aria-pressed={selectedSkill === skill}
+              onClick={() => {
+                setSelectedSkill((current) => current === skill ? null : skill)
+              }}
+            >
+              {selectedCharacter.skillImages?.[skill] ? (
+                <img
+                  src={`${import.meta.env.BASE_URL}${selectedCharacter.skillImages[skill]}`}
+                  alt={skill}
+                  draggable={false}
+                />
+              ) : (
+                skill
+              )}
+            </button>
+          ))}
         </div>
-      ))}
-    </div>
-  </div>
+            </div>
+
+      <div className={`character-description${selectedSkill ? ' has-skill-image' : ''}`}>
+        {selectedSkill && (
+          <div className="description-image-slot">
+            {selectedCharacter.skillImages?.[selectedSkill] ? (
+              <img
+                src={`${import.meta.env.BASE_URL}${selectedCharacter.skillImages[selectedSkill]}`}
+                alt={selectedSkill}
+                width={120}
+                height={120}
+                draggable={false}
+              />
+            ) : (
+              <span>{selectedSkill}</span>
+            )}
+          </div>
+        )}
+
+        <div className="description-text">
+          <h3>{selectedSkill ?? selectedCharacter.name}</h3>
+          <p>
+            {selectedSkill
+              ? selectedCharacter.skillDescriptions?.[selectedSkill] ??
+                'Descrição desta habilidade ainda não disponível.'
+              : selectedCharacter.description ??
+                'Descrição ainda não disponível.'}
+          </p>
+        </div>
+      </div>
+    </>
+  )}
 </section>
+
 
       <nav className="game-menu">
         <span>Game modes · Coming soon</span>
@@ -125,7 +207,11 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
       </nav>
 
       <section className="selection-panel">
-        <div className="character-grid">
+        <div
+          className="character-grid"
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={handleReturnToCatalog}
+        >
           {characters.map((character) => {
             const isInTeam = team.some(
               (member) => member?.id === character.id
@@ -135,10 +221,19 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
               <button
                 key={character.id}
                 className={`character ${isInTeam ? 'in-team' : ''}`}
-                aria-pressed={selectedCharacter.id === character.id}
+                aria-pressed={selectedCharacter?.id === character.id}
                 draggable={!isInTeam}
-                onClick={() => setSelectedCharacter(character)}
-                onDoubleClick={() => addToTeam(character)}
+                onMouseDown={(event) => {
+                  if (event.button !== 0) event.preventDefault()
+                }}
+                onClick={(event) => {
+  if (event.detail === 1) toggleCharacterDetails(character)
+}}
+onDoubleClick={() => {
+  setSelectedSkill(null)
+  setSelectedCharacter(character)
+  addToTeam(character)
+}}
                 onContextMenu={(event) => {
                   event.preventDefault()
                   addToTeam(character)
@@ -168,7 +263,20 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
             {team.filter(Boolean).length}/3 characters selected
           </p>
 
-          <button className="add-character" onClick={() => addToTeam(selectedCharacter)} disabled={team.every(Boolean) || team.some((member) => member?.id === selectedCharacter.id)}>Add selected character</button>
+         <button
+  className="add-character"
+  onClick={() => {
+    if (selectedCharacter) addToTeam(selectedCharacter)
+  }}
+  disabled={
+    !selectedCharacter ||
+    team.every(Boolean) ||
+    team.some((member) => member?.id === selectedCharacter?.id)
+  }
+>
+  Add selected character
+</button>
+
           <div className="team-slots">
             {team.map((member, index) => (
               <div
@@ -176,20 +284,44 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
                 className={`team-slot ${member ? 'occupied' : ''}`}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => handleDrop(event, index)}
-                onContextMenu={(event) => handleRightClick(event, index)}
-                title={member ? 'Right-click to remove' : 'Drop a character here'}
+                onContextMenu={(event) => {
+                  event.preventDefault()
+                  if (member) removeFromTeam(index)
+                }}
+                title={member ? 'Click to view skills. Double-click or right-click to remove. Drag to the catalog to remove.' : 'Drop a character here'}
               >
-                {member ? <button className="remove-character" onClick={() => removeFromTeam(index)} aria-label={`Remove ${member.name}`}>{member.image ? (
-  <img
-    src={`${import.meta.env.BASE_URL}${member.image}`}
-    alt={member.name}
-    width={50}
-    height={50}
-    draggable={false}
-  />
-) : (
-  member.name
-)}</button> : index + 1}
+                {member ? (
+                  <button
+                    className="remove-character"
+                    aria-label={`View skills for ${member.name}`}
+                    onClick={(event) => {
+  if (event.detail === 1) toggleCharacterDetails(member)
+}}
+onDoubleClick={() => {
+  setSelectedSkill(null)
+  setSelectedCharacter(member)
+  removeFromTeam(index)
+}}
+                    draggable
+                    onDragStart={(event) => {
+                      handleDragStart(event, member)
+                      event.dataTransfer.setData('teamCharacterId', member.id)
+                    }}
+                    onMouseDown={(event) => {
+                      if (event.button !== 0) event.preventDefault()
+                    }}
+                  >
+                    {member.image ? (
+                      <img
+                        src={`${import.meta.env.BASE_URL}${member.image}`}
+                        alt={member.name}
+                        width={75}
+                        height={75}
+                        draggable={false}
+                      />
+                    ) : member.name}
+                  </button>
+                ) : index + 1}
               </div>
             ))}
           </div>

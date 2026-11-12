@@ -180,7 +180,9 @@
 .character-details {
   width: 80%;
   margin-left: auto;
+  height: 340px;
   min-height: 340px;
+  overflow-y: auto;
 }
 
 .character-details-top {
@@ -191,6 +193,12 @@
 }
 
 .portrait-slot {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   width: 120px;
   height: 120px;
   display: flex;
@@ -221,4 +229,64 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.character-details-space {
+  min-height: 340px;
+}
+.character-description {
+  margin-top: 20px;
+}
+
+.character-description.has-skill-image {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 60px;
+  align-items: start;
+}
+
+.description-image-slot {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.description-image-slot img {
+  display: block;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border: 2px solid #333;
+}
+
+.description-text {
+  min-width: 0;
+}
+
+.character-description h3 {
+  margin: 0 0 6px;
+  color: #b51d23;
+  font-size: 18px;
+}
+
+.character-description p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.character-details .skill {
+  background: #e8ddbf;
+  color: #222;
+  cursor: pointer;
+  border-radius: 0;
+  font-family: inherit;
+}
+
+.character-details .skill[aria-pressed="true"] {
+  outline: 2px solid #b51d23;
+  outline-offset: 2px;
 }
