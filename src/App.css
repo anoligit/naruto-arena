@@ -1,0 +1,118 @@
+
+.game {
+  width: 770px;
+  height: 560px;
+  margin: 20px auto;
+  padding: 20px;
+  box-sizing: border-box;
+  background: #d6c49a;
+  color: #222;
+  font-family: Arial, sans-serif;
+}
+
+.character-details {
+  height: 190px;
+  border: 2px solid #333;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.character-details h2 {
+  margin: 0 0 20px;
+  font-size: 18px;
+}
+
+.skills {
+  display: flex;
+  gap: 10px;
+}
+
+.skill {
+  width: 110px;
+  height: 65px;
+  border: 1px solid #333;
+  padding: 5px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.game-menu {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 0;
+}
+
+.game-menu button {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.selection-panel {
+  display: flex;
+  gap: 20px;
+  border: 2px solid #333;
+  padding: 15px;
+}
+
+.character-grid {
+  width: 440px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.character {
+  width: 48px;
+  height: 48px;
+  padding: 3px;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.team-panel {
+  flex: 1;
+}
+
+.team-panel h3 {
+  margin-top: 0;
+}
+
+.team-slots {
+  display: flex;
+  gap: 5px;
+}
+
+.team-slots div {
+  width: 48px;
+  height: 48px;
+  border: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.character.in-team {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.character:not(.in-team) {
+  cursor: grab;
+}
+
+.team-slot {
+  font-size: 9px;
+  text-align: center;
+  padding: 3px;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  cursor: default;
+}
+
+.team-slot.occupied {
+  background-color: #b7a176;
+  cursor: context-menu;
+}
