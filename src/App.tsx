@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Character } from './data/characters'
+import { loadTeam, saveTeam } from './teamStorage'
 import StartPlaying from './pages/StartPlaying'
 import './App.css'
 
@@ -7,8 +8,12 @@ type Page = 'startpage' | 'start-playing'
 const readPage = (): Page => window.location.hash === '#start-playing' ? 'start-playing' : 'startpage'
 
 function App() {
-  const [team, setTeam] = useState<(Character | null)[]>([null, null, null])
+  const [team, setTeam] = useState<(Character | null)[]>(loadTeam)
   const [page, setPage] = useState<Page>(readPage)
+
+  useEffect(() => {
+    saveTeam(team)
+  }, [team])
 
   useEffect(() => {
     const handleNavigation = () => setPage(readPage())
@@ -53,7 +58,7 @@ function App() {
             <h1 id="home-title">Naruto Arena</h1>
             <p className="tagline">Build your team. Find your ninja way.</p>
             <div className="welcome-banner"><strong>Welcome to the arena</strong><span>A classic experience, one step at a time.</span><a className="play-link" href="#start-playing">Start Playing »</a></div>
-            <article className="news-post"><p className="eyebrow">Project news · Stage 01</p><h2>A new home for your team</h2><p>The first stage of the website is here: a classic three-column layout with shared navigation and a dedicated character selection page.</p><p>Open Start Playing to explore the ninjas and choose your team. You can return here without losing your selection while the site stays open.</p><h3>What is available?</h3><ul><li>Character details and skills.</li><li>A team of three different ninjas.</li><li>Double-click and drag-and-drop selection.</li></ul><p className="development-note">In development: accounts, missions, rankings and battles. Reloading the page resets your team.</p></article>
+            <article className="news-post"><p className="eyebrow">Project news · Stage 01</p><h2>A new home for your team</h2><p>The first stage of the website is here: a classic three-column layout with shared navigation and a dedicated character selection page.</p><p>Open Start Playing to explore the ninjas and choose your team. You can return here without losing your selection while the site stays open.</p><h3>What is available?</h3><ul><li>Character details and skills.</li><li>A team of three different ninjas.</li><li>Double-click and drag-and-drop selection.</li></ul><p className="development-note">In development: accounts, missions, rankings and battles. Your team is saved in this browser when local storage is available.</p></article>
           </section>
           <section hidden={page !== 'start-playing'} aria-labelledby="playing-title" className="playing-page">
             <h1 id="playing-title">Start Playing</h1><p className="tagline">Select your team</p>
