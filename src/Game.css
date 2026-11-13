@@ -1,314 +1,447 @@
-
+/* 1. Área fixa da seleção, independente do conteúdo dos personagens. */
 .game {
-  width: 100%;
-  min-height: 560px;
-  margin: 20px 0;
-  padding: 20px;
+  --catalog-size: 75px;
+  --catalog-gap: 20px;
+  --portrait-size: 120px;
+  width: 1220px;
+  max-width: 100%;
+  min-width: 960px;
+  height: 890px;
+  margin: 0 auto;
+  padding: 32px 28px 12px;
+  display: grid;
+  grid-template-rows: 340px 90px 350px 24px;
+  gap: 14px;
   box-sizing: border-box;
   background: #d6c49a;
   color: #222;
-  font-family: Arial, sans-serif;
+  font: 14px/1.4 Arial, sans-serif;
 }
 
-.character-details {
-  min-height: 160px;
-  border: 2px solid #333;
-  padding: 12px;
+.game * {
   box-sizing: border-box;
 }
 
-.character-details h2 {
-  margin: 0 0 20px;
-  font-size: 18px;
+.game button {
+  font: inherit;
+  color: inherit;
 }
 
-.skills {
-  display: flex;
+/* 2. Painel de detalhes: mantém o mesmo espaço aberto ou fechado. */
+.game .character-details {
+  grid-row: 1;
+  width: 928px;
+  max-width: calc(100% - 40px);
+  height: 340px;
+  min-height: 0;
+  margin-left: auto;
+  margin-right: 40px;
+  padding: 12px 40px;
+  border: 2px solid #70582a;
+  background: #f4e9c7;
+  display: grid;
+  grid-template-rows: 24px 120px minmax(0, 1fr);
   gap: 10px;
+  overflow: hidden;
 }
 
-.skill {
-  width: 110px;
-  height: 65px;
-  border: 1px solid #333;
-  padding: 5px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+.game .character-details h2 {
+  margin: 0;
+  color: #b51d23;
+  font-size: 18px;
+  line-height: 24px;
 }
 
-.game-menu {
-  display: flex;
-  justify-content: space-between;
-  margin: 15px 0;
+.game .character-details-top {
+  display: grid;
+  grid-template-columns: 120px 570px;
+  gap: 94px;
+  min-width: 0;
 }
 
-.game-menu button {
-  padding: 8px;
+.game .portrait-slot {
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   cursor: pointer;
 }
 
-.selection-panel {
-  display: flex;
-  gap: 20px;
+.game .character-portrait {
+  display: block;
+  width: 120px;
+  height: 120px;
   border: 2px solid #333;
-  padding: 15px;
+  object-fit: cover;
 }
 
-.character-grid {
-  flex: 1;
-  min-width: 75px;
+.game .skills {
   display: grid;
-  grid-template-columns: repeat(7, 75px);
-  grid-template-rows: repeat(3, 75px);
-  gap: 8px;
-  align-content: start;
+  grid-template-columns: repeat(4, 120px);
+  justify-content: start;
+  gap: 30px;
+  min-width: 0;
 }
 
-.character {
-  width: 75px;
-  height: 75px;
+.game .skill {
+  width: 120px;
+  height: 120px;
   padding: 0;
   border: 1px solid #55482e;
   border-radius: 0;
   background: #e8ddbf;
-  color: #222;
-  font-size: 10px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.character img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.character:not(.in-team):hover {
-  border-color: #30206d;
-  box-shadow: 0 0 0 1px #30206d;
-}
-
-.team-panel {
-  min-width: 150px;
-}
-
-.team-panel h3 {
-  margin-top: 0;
-}
-
-.team-slots {
-  display: flex;
-  gap: 5px;
-}
-
-.team-slots div {
-  width: 48px;
-  height: 48px;
-  border: 1px solid #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.character.in-team {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.character:not(.in-team) {
-  cursor: grab;
-}
-
-.team-slot {
-  font-size: 9px;
-  text-align: center;
-  padding: 3px;
-  box-sizing: border-box;
-  overflow-wrap: anywhere;
-  cursor: default;
-}
-
-.team-slot.occupied {
-  background-color: #b7a176;
-  cursor: context-menu;
-}
-
-.skills, .game-menu { flex-wrap: wrap; }
-.game-menu { gap: 8px; align-items: center; }
-.game-menu span, .selection-help { font-size: 12px; }
-.selection-help { margin: 0 0 12px; }
-.game-menu button:disabled { color: #555; }
-.selection-panel { flex-wrap: wrap; gap: 14px; }
-.character[aria-pressed="true"] { outline: 2px solid #4d287b; outline-offset: 1px; }
-.add-character { margin-bottom: 12px; padding: 6px; font-size: 12px; }
-.remove-character { border: 0; background: transparent; width: 100%; height: 100%; padding: 0; color: inherit; font-size: 9px; cursor: pointer; }
-@media (max-width: 680px) { .game { padding: 12px; } .skill { flex: 1 1 80px; } .team-panel { width: 100%; } }
-
-.team-slots .team-slot {
-  width: 75px;
-  height: 75px;
-  padding: 0;
-}
-
-.remove-character {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.remove-character img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.character-portrait {
-  display: block;
-  width: 120px;
-  height: 120px;
-  object-fit: cover;
-  border: 2px solid #333;
-}
-
-.character-details {
-  width: 80%;
-  margin-left: auto;
-  height: 340px;
-  min-height: 340px;
-  overflow-y: auto;
-}
-
-.character-details-top {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 60px;
-  align-items: start;
-}
-
-.portrait-slot {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
+  font-size: 12px;
   cursor: pointer;
-  width: 120px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.character-details .skills {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 120px));
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.character-details .skill {
-  width: 100%;
-  height: 120px;
-}
-
-.character-details .skill {
-  padding: 0;
   overflow: hidden;
 }
 
-.character-details .skill img {
+.game .skill img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.character-details-space {
-  min-height: 340px;
-}
-.character-description {
-  margin-top: 20px;
-}
-
-.character-description.has-skill-image {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 60px;
-  align-items: start;
-}
-
-.description-image-slot {
-  width: 120px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.description-image-slot img {
-  display: block;
-  width: 120px;
-  height: 120px;
-  object-fit: cover;
-  border: 2px solid #333;
-}
-
-.description-text {
-  min-width: 0;
-}
-
-.character-description h3 {
-  margin: 0 0 6px;
-  color: #b51d23;
-  font-size: 18px;
-}
-
-.character-description p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.character-details .skill {
-  background: #e8ddbf;
-  color: #222;
-  cursor: pointer;
-  border-radius: 0;
-  font-family: inherit;
-}
-
-.character-details .skill[aria-pressed="true"] {
+.game .skill[aria-pressed='true'] {
   outline: 2px solid #b51d23;
   outline-offset: 2px;
 }
 
-.skill-facts {
-  margin: 8px 0 0;
-  font-size: 12px;
-  line-height: 1.4;
+/* 3. Texto à esquerda, imagem à direita e informações fixas na base. */
+.game .character-description {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 24px;
+  width: 784px;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
 }
 
-.skill-facts > div {
+.game .description-image-slot,
+.game .description-image-slot img {
+  display: block;
+  width: 120px;
+  height: 120px;
+}
+
+.game .description-image-slot img {
+  border: 1px solid #333;
+  object-fit: cover;
+}
+
+.game .description-text {
+  display: grid;
+  grid-template-rows: 24px minmax(0, 1fr) 22px;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.game .description-heading {
   display: flex;
-  gap: 6px;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  min-width: 0;
 }
 
-.skill-facts dt {
+.game .description-heading h3 {
+  min-width: 0;
+  margin: 0;
+  color: #b51d23;
+  font-size: 17px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game .selection-energy-cost {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 7px;
+  color: #786b4e;
+  font-size: 11px;
   font-weight: bold;
 }
 
-.skill-facts dd {
-  margin: 0;
+.game .description-body {
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
   overflow-wrap: anywhere;
 }
-.alternative-skill-link { display: block; margin-top: 6px; padding: 0; border: 0; color: #7a2523; background: transparent; text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; }
+
+.game .description-body p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.game .skill-facts {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  min-width: 0;
+  margin: 0;
+  color: #786b4e;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.game .skill-facts > div {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.game .skill-facts dt {
+  font-weight: bold;
+}
+
+.game .skill-facts dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.game .selection-classes {
+  flex: 1;
+}
+
+.game .selection-cooldown {
+  flex-shrink: 0;
+}
+
+.game .alternative-skill-link {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #7a2523;
+  font-size: 12px;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 4. Botões em uma linha, sempre nas mesmas posições. */
+.game .game-menu {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 210px repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+}
+
+.game .game-menu span {
+  font-size: 12px;
+}
+
+.game .game-menu button {
+  min-width: 0;
+  min-height: 46px;
+  padding: 8px 12px;
+  border: 1px solid #65542f;
+  background: #fff6d9;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.game .game-menu button:disabled {
+  color: #77705f;
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+/* 5. Catálogo de sete colunas e três linhas, com time à direita. */
+.game .selection-panel {
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 30px;
+  min-width: 0;
+  min-height: 0;
+  padding: 22px 24px 22px 106px;
+  border: 2px solid #70582a;
+  background: #f4e9c7;
+}
+
+.game .character-grid {
+  display: grid;
+  grid-template-columns: repeat(7, var(--catalog-size));
+  grid-template-rows: repeat(3, var(--catalog-size));
+  grid-auto-rows: var(--catalog-size);
+  gap: var(--catalog-gap);
+  align-content: start;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.game .character,
+.game .character-placeholder {
+  display: grid;
+  place-items: center;
+  width: var(--catalog-size);
+  height: var(--catalog-size);
+  padding: 0;
+  border: 1px solid #55482e;
+  border-radius: 0;
+  background: #e8ddbf;
+  font-size: 10px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.game .character-placeholder {
+  border-color: #bdad87;
+  background: #ddcfaa;
+}
+
+.game .character img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game .character:not(.in-team) {
+  cursor: grab;
+}
+
+.game .character:not(.in-team):hover {
+  border-color: #30206d;
+  box-shadow: 0 0 0 1px #30206d;
+}
+
+.game .character.in-team {
+  opacity: .35;
+  cursor: pointer;
+}
+
+.game .character[aria-pressed='true'] {
+  outline: 2px solid #4d287b;
+  outline-offset: -3px;
+}
+
+/* 6. Perfil acima dos três personagens; prontidão abaixo do time. */
+.game .team-panel {
+  display: grid;
+  grid-template-rows: 175px var(--catalog-size) 18px 22px;
+  gap: 4px;
+  align-content: space-between;
+  min-width: 0;
+  min-height: 0;
+}
+
+.game .team-slots {
+  display: grid;
+  grid-template-columns: repeat(3, var(--catalog-size));
+  gap: 20px;
+  justify-self: start;
+  padding-left: 8px;
+}
+
+.game .team-readiness {
+  width: calc(3 * var(--catalog-size) + 56px);
+  max-width: 100%;
+  margin: 0;
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.game .team-slot {
+  display: grid;
+  place-items: center;
+  width: var(--catalog-size);
+  height: var(--catalog-size);
+  padding: 0;
+  border: 1px solid #55482e;
+  background: #e8ddbf;
+  font-size: 18px;
+  overflow: hidden;
+}
+
+.game .team-slot.occupied {
+  background: #b7a176;
+}
+
+.game .remove-character {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.game .remove-character img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game .add-character {
+  justify-self: center;
+  min-height: 22px;
+  margin: 0;
+  padding: 1px 14px;
+  border: 1px solid #65542f;
+  background: #fff6d9;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.game .add-character:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+/* 7. Instruções fora dos painéis de conteúdo. */
+.game .selection-help {
+  grid-row: 4;
+  min-width: 0;
+  margin: 0;
+  color: #51452c;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* 8. Ajuste compacto sem empilhar o time embaixo do catálogo. */
+@media (max-width: 1100px) {
+  .game {
+    --catalog-size: 70px;
+    --catalog-gap: 12px;
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .game .selection-panel {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .game .game-menu {
+    grid-template-columns: 170px repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+}

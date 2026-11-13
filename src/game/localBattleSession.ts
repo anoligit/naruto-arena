@@ -1,9 +1,9 @@
-import { createEmptyChakraPool, exchangeChakra, paySkillCost, chakraRules } from './chakra/index'
+import { createEmptyEnergyPool, exchangeEnergy, paySkillCost, energyRules } from './energy/index'
 import { resolveTurn } from './resolveTurn'
 import { expireTurn } from './turnTimer'
 import { buildConfirmedActions, getQueueBudget, validatePlannedAction } from './plannedActions'
 import type { PlannedAction } from './plannedActions'
-import type { BattleState, ChakraPool, ChakraType } from './types'
+import type { BattleState, EnergyPool, EnergyType } from './types'
 
 export type BattleMode = 'ladder' | 'quick' | 'private'
 
@@ -14,7 +14,7 @@ export function appendAction(
   if (queue.some((entry) => entry.characterInstanceId === action.characterInstanceId)) return { ok: false, reason: 'already-queued' }
   const validation = validatePlannedAction(battle, queue, action, now)
   if (!validation.ok) return validation
-  // Persist only actor, skill and target. Random chakra is chosen at confirmation.
+  // Persist only actor, skill and target. Random energy is chosen at confirmation.
   const planned: PlannedAction = {
     playerId: action.playerId, characterInstanceId: action.characterInstanceId,
     skillId: action.skillId, targetInstanceId: action.targetInstanceId,
@@ -23,15 +23,15 @@ export function appendAction(
 }
 
 export function applyExchange(
-  battle: BattleState, queue: readonly PlannedAction[], sacrificed: ChakraPool, chosenType: ChakraType, now: number
+  battle: BattleState, queue: readonly PlannedAction[], sacrificed: EnergyPool, chosenType: EnergyType, now: number
 ): BattleState | null {
   if (battle.phase !== 'planning' || battle.turnEndsAt === null || now >= battle.turnEndsAt) return null
   const budget = getQueueBudget(battle, queue)
-  if (!budget || !paySkillCost(budget.afterSpecific, { random: chakraRules.exchangeCost }, sacrificed)) return null
+  if (!budget || !paySkillCost(budget.afterSpecific, { random: energyRules.exchangeCost }, sacrificed)) return null
   const player = battle.players[battle.activePlayerId]
-  const chakra = exchangeChakra(player.chakra, sacrificed, chosenType)
-  if (!chakra) return null
-  const next = { ...battle, players: { ...battle.players, [player.id]: { ...player, chakra } } }
+  const energy = exchangeEnergy(player.energy, sacrificed, chosenType)
+  if (!energy) return null
+  const next = { ...battle, players: { ...battle.players, [player.id]: { ...player, energy } } }
   // An applied trade cannot make the planned specific or random costs impossible.
   return getQueueBudget(next, queue) ? next : null
 }
@@ -41,11 +41,11 @@ export type LocalBattleSession = {
   battle: BattleState
   queue: PlannedAction[]
   pending: PendingAction | null
-  randomPayment: ChakraPool
+  randomPayment: EnergyPool
   surrenderPending: boolean
   exchangeOpen: boolean
-  sacrificed: ChakraPool
-  chosenType: ChakraType
+  sacrificed: EnergyPool
+  chosenType: EnergyType
   error: string
   notice: string
   log: string[]
@@ -54,8 +54,8 @@ export type LocalBattleSession = {
 
 export function createLocalSession(battle: BattleState, now: number): LocalBattleSession {
   return {
-    battle, queue: [], pending: null, randomPayment: createEmptyChakraPool(),
-    surrenderPending: false, exchangeOpen: false, sacrificed: createEmptyChakraPool(), chosenType: 'ninjutsu',
+    battle, queue: [], pending: null, randomPayment: createEmptyEnergyPool(),
+    surrenderPending: false, exchangeOpen: false, sacrificed: createEmptyEnergyPool(), chosenType: 'ninjutsu',
     error: '', notice: '', log: [], now,
   }
 }
@@ -72,7 +72,7 @@ export function confirmSession(session: LocalBattleSession, now: number): LocalB
   const checked = tickSession(session, now)
   if (checked.battle !== session.battle) return checked
   const actions = buildConfirmedActions(session.battle, session.queue, session.randomPayment)
-  if (!actions) return { ...session, now, error: 'choose-random-chakra' }
+  if (!actions) return { ...session, now, error: 'choose-random-energy' }
   const result = resolveTurn(session.battle, actions, now)
   if (!result.ok) return result.reason === 'turn-expired' ? tickSession(session, now) : { ...session, error: result.reason, now }
   const entries = result.damageResults.map((item) => `${item.targetInstanceId}: ${item.damage} de dano (${item.healthAfter} de vida).`)

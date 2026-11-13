@@ -1,12 +1,12 @@
 import { characters } from '../data/characters'
-import { createEmptyChakraPool, paySkillCost, chakraTotal, chakraDisplayOrder as chakraTypes } from './chakra/index'
+import { createEmptyEnergyPool, paySkillCost, energyTotal, energyDisplayOrder as energyTypes } from './energy/index'
 import { validateSkillUse } from './validateSkillUse'
 import type { SkillUseRequest, SkillUseValidation } from './validateSkillUse'
-import type { BattleState, ChakraPool } from './types'
+import type { BattleState, EnergyPool } from './types'
 
 export type PlannedAction = Omit<SkillUseRequest, 'randomPayment'>
 // Reexportações mantidas para os consumidores existentes.
-export { chakraTotal, chakraDisplayOrder as chakraTypes } from './chakra/index'
+export { energyTotal, energyDisplayOrder as energyTypes } from './energy/index'
 
 export function skillForAction(battle: BattleState, action: PlannedAction) {
   const member = battle.players[action.playerId].team.find((entry) => entry.instanceId === action.characterInstanceId)
@@ -14,15 +14,15 @@ export function skillForAction(battle: BattleState, action: PlannedAction) {
 }
 
 export type QueueBudget = {
-  afterSpecific: ChakraPool
+  afterSpecific: EnergyPool
   randomRequired: number
   freeTotal: number
 }
 
 // Reserve all specific costs first. Random costs are a total obligation, never
-// a premature choice of chakra types. Reordering cannot change affordability.
+// a premature choice of energy types. Reordering cannot change affordability.
 export function getQueueBudget(battle: BattleState, queue: readonly PlannedAction[]): QueueBudget | null {
-  let afterSpecific = { ...battle.players[battle.activePlayerId].chakra }
+  let afterSpecific = { ...battle.players[battle.activePlayerId].energy }
   let randomRequired = 0
   const used = new Set<string>()
   for (const action of queue) {
@@ -32,12 +32,12 @@ export function getQueueBudget(battle: BattleState, queue: readonly PlannedActio
     if (!skill) return null
     const random = skill.cost.random ?? 0
     if (!Number.isInteger(random) || random < 0) return null
-    const next = paySkillCost(afterSpecific, { specific: skill.cost.specific }, createEmptyChakraPool())
+    const next = paySkillCost(afterSpecific, { specific: skill.cost.specific }, createEmptyEnergyPool())
     if (!next) return null
     afterSpecific = next
     randomRequired += random
   }
-  const freeTotal = chakraTotal(afterSpecific) - randomRequired
+  const freeTotal = energyTotal(afterSpecific) - randomRequired
   return freeTotal < 0 ? null : { afterSpecific, randomRequired, freeTotal }
 }
 
@@ -48,9 +48,9 @@ export function validatePlannedAction(
   if (!skill) return { ok: false, reason: 'skill-not-found' }
   const budget = getQueueBudget(battle, [...queue, action])
   if (!budget) return { ok: false, reason: 'invalid-payment' }
-  const payment = createEmptyChakraPool()
+  const payment = createEmptyEnergyPool()
   let needed = skill.cost.random ?? 0
-  for (const type of chakraTypes) {
+  for (const type of energyTypes) {
     payment[type] = Math.min(budget.afterSpecific[type], needed)
     needed -= payment[type]
   }
@@ -59,12 +59,12 @@ export function validatePlannedAction(
   const preceding = getQueueBudget(battle, queue)!
   return validateSkillUse({
     ...battle,
-    players: { ...battle.players, [action.playerId]: { ...battle.players[action.playerId], chakra: preceding.afterSpecific } },
+    players: { ...battle.players, [action.playerId]: { ...battle.players[action.playerId], energy: preceding.afterSpecific } },
   }, { ...action, randomPayment: payment }, now)
 }
 
 export function buildConfirmedActions(
-  battle: BattleState, queue: readonly PlannedAction[], chosen: ChakraPool
+  battle: BattleState, queue: readonly PlannedAction[], chosen: EnergyPool
 ): SkillUseRequest[] | null {
   const budget = getQueueBudget(battle, queue)
   if (!budget || !paySkillCost(budget.afterSpecific, { random: budget.randomRequired }, chosen)) return null
@@ -73,8 +73,8 @@ export function buildConfirmedActions(
   for (const action of queue) {
     const skill = skillForAction(battle, action)!
     let needed = skill.cost.random ?? 0
-    const payment = createEmptyChakraPool()
-    for (const type of chakraTypes) {
+    const payment = createEmptyEnergyPool()
+    for (const type of energyTypes) {
       payment[type] = Math.min(remainingChoice[type], needed)
       remainingChoice[type] -= payment[type]
       needed -= payment[type]

@@ -2,9 +2,9 @@ import type { ActiveStatus, SkillEffect } from './effects/types'
 export type { ActiveStatus, SkillEffect, StatusModifier, StatusDefinition } from './effects/types'
 import type { SkillClass } from './classes/types'
 export type { SkillClass } from './classes/types'
-import type { ChakraCost, ChakraPool } from './chakra/types'
+import type { EnergyCost, EnergyPool } from './energy/types'
 
-export type { ChakraType, ChakraPool, ChakraCost } from './chakra/types'
+export type { EnergyType, EnergyPool, EnergyCost } from './energy/types'
 
 export type SkillTarget = 'self' | 'enemy' | 'ally'
 
@@ -13,7 +13,7 @@ export type SkillDefinition = {
   name: string
   description: string
   image?: string
-  cost: ChakraCost
+  cost: EnergyCost
   cooldown: number
   target: SkillTarget
   classes: SkillClass[]
@@ -48,7 +48,7 @@ export type BattleTeam = [
 export type BattlePlayer = {
   id: PlayerId
   team: BattleTeam
-  chakra: ChakraPool
+  energy: EnergyPool
   turnsStarted: number
 }
 

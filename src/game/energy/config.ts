@@ -1,5 +1,5 @@
 // Regras compartilhadas de geração e troca.
-export const chakraRules = {
+export const energyRules = {
   firstTurnAmount: 1,
   perLivingCharacter: 1,
   exchangeCost: 5,

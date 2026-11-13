@@ -21,7 +21,7 @@ export const skillClassDefinitions = {
   chakra: {
     name: 'Chakra',
     group: 'nature',
-    description: 'Técnica cujo resultado é produzido por energia. Esta classe não define o tipo de chakra usado para pagar a habilidade.',
+    description: 'Técnica cujo resultado é produzido por energia. Esta classe não define o tipo de energia usado para pagar a habilidade.',
   },
   affliction: {
     name: 'Affliction',

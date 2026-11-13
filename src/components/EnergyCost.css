@@ -1,0 +1,11 @@
+.energy-cost {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.energy-cost > span {
+  display: inline-flex;
+}

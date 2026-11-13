@@ -1,0 +1,38 @@
+.energy-token {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border: 1px solid #111;
+  vertical-align: middle;
+}
+
+/* Escolha do energy recebido na troca, com mouse ou teclado. */
+.energy-choice {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #65542f;
+  background: #fff6d9;
+  cursor: pointer;
+}
+
+.energy-choice input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.energy-choice input:checked + .energy-token {
+  outline: 2px solid #111;
+  outline-offset: 3px;
+}
+
+.energy-choice input:focus-visible + .energy-token {
+  outline: 3px solid #54209a;
+  outline-offset: 3px;
+}

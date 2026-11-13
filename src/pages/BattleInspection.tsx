@@ -1,6 +1,7 @@
+import { energyLabels } from '../game/energy/index'
 import { formatCooldown } from '../game/cooldown'
 import SkillClasses from '../components/SkillClasses'
-import { formatChakraCost } from '../game/chakra/index'
+import EnergyCost from '../components/EnergyCost'
 import { imageUrl } from '../utils/imageUrl'
 import { characters } from '../data/characters'
 import type { BattleState } from '../game/types'
@@ -22,7 +23,6 @@ export default function BattleInspectionPanel({ battle, inspection, onCharacter,
   const description = skillName
     ? skill?.description ?? definition?.skillDescriptions?.[skillName] ?? 'Regras desta habilidade ainda não cadastradas.'
     : definition?.description ?? 'Descrição deste personagem ainda não cadastrada.'
-  const costs = skill ? formatChakraCost(skill.cost) : ''
 
   return <section className="battle-inspection" aria-label="Consulta de personagens e habilidades">
     {member && definition ? <>
@@ -31,7 +31,7 @@ export default function BattleInspectionPanel({ battle, inspection, onCharacter,
         <small>Consulta · {definition.name}</small>
         <h2>{skillName ?? definition.name}</h2>
         <p>{description}</p>
-        {skill && <dl><div><dt>Chakra</dt><dd>{costs}</dd></div>
+        {skill && <dl><div><dt>{energyLabels.cost}</dt><dd><EnergyCost cost={skill.cost} /></dd></div>
           <div><dt>Recarga</dt><dd>{formatCooldown(skill.cooldown, 'full')}</dd></div>
           <div><dt>Alvo</dt><dd>{skill.target === 'self' ? 'O próprio usuário' : skill.target === 'enemy' ? 'Um inimigo vivo que possa receber esta habilidade' : 'Um aliado vivo que possa receber esta habilidade'}</dd></div>
           <div><dt>Classes</dt><dd><SkillClasses classes={skill.classes} /></dd></div></dl>}
@@ -41,6 +41,6 @@ export default function BattleInspectionPanel({ battle, inspection, onCharacter,
         {skill?.replacement && <small>Substitui {definition.skillDefinitions?.find((candidate) => candidate.id === skill.replacement?.skillId)?.name} enquanto o efeito necessário estiver ativo.</small>}
         {skillName && <button onClick={() => onCharacter(member.instanceId)}>Ver descrição do personagem</button>}
       </div>
-    </> : <p>Clique em qualquer personagem ou habilidade para consultar sua descrição. Consultar não gasta chakra nem registra uma ação.</p>}
+    </> : <p>{energyLabels.consultationHelp}</p>}
   </section>
 }

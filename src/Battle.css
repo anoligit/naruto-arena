@@ -40,7 +40,7 @@
   height: 100%;
 }
 
-/* 2. Cabeçalho, tempo e chakras */
+/* 2. Cabeçalho, tempo e energys */
 
 .battle-header {
   display: grid;
@@ -129,7 +129,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.chakra-reserve {
+.energy-reserve {
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -140,13 +140,13 @@
   font-weight: bold;
 }
 
-.chakra-reserve > span {
+.energy-reserve > span {
   display: inline-flex;
   gap: 4px;
   align-items: center;
 }
 
-.chakra-reserve b {
+.energy-reserve b {
   font-size: 12px;
   white-space: nowrap;
 }
@@ -364,7 +364,7 @@
   padding: 0 3px;
 }
 
-.battle-skill.insufficient-chakra img {
+.battle-skill.insufficient-energy img {
   opacity: .38;
   filter: saturate(.4);
 }
@@ -374,7 +374,7 @@
   filter: saturate(.45);
 }
 
-.battle-skill.insufficient-chakra > span, .battle-skill.use-blocked > span {
+.battle-skill.insufficient-energy > span, .battle-skill.use-blocked > span {
   opacity: .55;
 }
 
@@ -874,19 +874,12 @@
   margin: 12px 0;
 }
 
-.receive-chakra {
+.receive-energy {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   margin: 12px 0;
-}
-
-.receive-chakra select {
-  padding: 4px;
-  text-transform: uppercase;
-  background: #fff5d2;
-  border: 1px solid #796544;
 }
 
 .result-dialog {
@@ -1006,7 +999,7 @@
     font-size: 16px !important;
   }
 
-  .chakra-reserve {
+  .energy-reserve {
     gap: 5px;
     font-size: 12px;
   }
@@ -1113,7 +1106,7 @@
   outline-color: #54209a;
 }
 
-.battle-header, .chakra-reserve {
+.battle-header, .energy-reserve {
   color: #222;
   text-shadow: none;
 }
@@ -1199,6 +1192,3 @@
   border: 1px solid #65542f;
 }
 
-.receive-chakra select {
-  background: #fff6db;
-}

@@ -1,11 +1,12 @@
+import { energyLabels } from '../game/energy/index'
 import EffectIndicator from '../components/EffectIndicator'
 import { formatRemainingCooldown } from '../game/cooldown'
-import ChakraToken from '../components/ChakraToken'
+import EnergyToken from '../components/EnergyToken'
 import { imageUrl } from '../utils/imageUrl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { characters } from '../data/characters'
-import { createEmptyChakraPool, chakraTotal, chakraDisplayOrder as chakraTypes, chakraDefinitions, chakraRules } from '../game/chakra/index'
+import { createEmptyEnergyPool, energyTotal, energyDisplayOrder as energyTypes, energyDefinitions, energyRules } from '../game/energy/index'
 import { statuses, getActiveStatuses, describeStatusEffect, formatStatusDuration, isStatusVisible } from '../game/effects'
 import { getRemainingTurnSeconds } from '../game/turnTimer'
 import { appendAction, applyExchange, confirmSession, createLocalSession, tickSession } from '../game/localBattleSession'
@@ -14,7 +15,7 @@ import { getQueueBudget, skillForAction } from '../game/plannedActions'
 import type { PlannedAction } from '../game/plannedActions'
 import { getBattleSkillNames } from '../game/skillCatalog'
 import { getSkillAvailability } from '../game/skillAvailability'
-import type { BattleCharacter, BattleState, ChakraPool, ChakraType, PlayerId } from '../game/types'
+import type { BattleCharacter, BattleState, EnergyPool, PlayerId } from '../game/types'
 import BattleInspectionPanel from './BattleInspection'
 import type { BattleInspection } from './BattleInspection'
 import '../Battle.css'
@@ -32,8 +33,8 @@ const errors: Record<string, string> = {
   'invalid-target': 'Alvo não permitido.', 'target-defeated': 'O alvo foi derrotado.',
   'target-invulnerable': 'O alvo está invulnerável.', 'confirmation-open': 'Finalize ou cancele a confirmação.',
   'no-valid-target': 'Não há alvos válidos.', 'skill-not-found': 'Regras ainda não cadastradas. Consulta disponível.',
-  'battle-finished': 'A partida terminou.', 'invalid-payment': 'Chakra livre insuficiente.',
-  'choose-random-chakra': 'Escolha exatamente a quantidade indicada de chakra qualquer.',
+  'battle-finished': 'A partida terminou.', 'invalid-payment': energyLabels.insufficient,
+  'choose-random-energy': energyLabels.chooseRandomError,
 }
 function availabilityText(reason: string | null, cooldown: number) {
   return reason === 'cooldown' ? formatRemainingCooldown(cooldown) : reason ? errors[reason] ?? reason : 'Clique num retrato dourado para atribuir a habilidade.'
@@ -70,7 +71,7 @@ function SkillButton({ battle, queue, member, ownerId, skillName, inspection, pe
   const availability = getSkillAvailability(battle, queue, ownerId, member.instanceId, skill?.id ?? '', now)
   const selected = inspection?.characterInstanceId === member.instanceId && inspection.skillName === skillName
   const armed = pending?.characterInstanceId === member.instanceId && pending.skillId === skill?.id
-  const blocked = availability.cooldown > 0 ? ' on-cooldown' : availability.reason === 'invalid-payment' ? ' insufficient-chakra' : availability.usable ? '' : ' use-blocked'
+  const blocked = availability.cooldown > 0 ? ' on-cooldown' : availability.reason === 'invalid-payment' ? ' insufficient-energy' : availability.usable ? '' : ' use-blocked'
   return <button type="button" className={`battle-skill${blocked}${armed ? ' armed' : ''}`}
     title={`${skillName} · ${availabilityText(availability.reason, availability.cooldown)}`}
     aria-label={`${skillName} · ${playerName(ownerId)}`} aria-pressed={selected || armed}
@@ -81,18 +82,18 @@ function SkillButton({ battle, queue, member, ownerId, skillName, inspection, pe
   </button>
 }
 function AllocationPicker({ available, value, required, onChange }: {
-  available: ChakraPool; value: ChakraPool; required: number; onChange: (next: ChakraPool) => void
+  available: EnergyPool; value: EnergyPool; required: number; onChange: (next: EnergyPool) => void
 }) {
-  const chosen = chakraTotal(value)
-  return <div className="allocation-picker" role="group" aria-label="Escolha dos tipos de chakra">
-    <div className="allocation-head"><span>CHAKRA LEFT:</span><span>RANDOM CHAKRA:</span></div>
-    {chakraTypes.map((type) => <div className="allocation-row" key={type}>
-      <span className="allocation-label"><ChakraToken type={type} />{chakraDefinitions[type].name}</span>
-      <output aria-label={`${chakraDefinitions[type].name} restante`}>{available[type] - value[type]}</output>
-      <button aria-label={`Retirar ${chakraDefinitions[type].name}`} disabled={value[type] === 0} onClick={() => onChange({ ...value, [type]: value[type] - 1 })}>−</button>
-      <button aria-label={`Escolher ${chakraDefinitions[type].name}`} disabled={chosen >= required || value[type] >= available[type]} onClick={() => onChange({ ...value, [type]: value[type] + 1 })}>+</button>
-      <span className="allocation-label"><ChakraToken type={type} />{chakraDefinitions[type].name}</span>
-      <output aria-label={`${chakraDefinitions[type].name} escolhido`}>{value[type]}</output>
+  const chosen = energyTotal(value)
+  return <div className="allocation-picker" role="group" aria-label={energyLabels.allocationGroup}>
+    <div className="allocation-head"><span>{energyLabels.left}</span><span>{energyLabels.selected}</span></div>
+    {energyTypes.map((type) => <div className="allocation-row" key={type}>
+      <span className="allocation-label"><EnergyToken type={type} /><span className="sr-only">{energyDefinitions[type].name}</span></span>
+      <output aria-label={`${energyDefinitions[type].name} restante`}>{available[type] - value[type]}</output>
+      <button aria-label={`Retirar ${energyDefinitions[type].name}`} disabled={value[type] === 0} onClick={() => onChange({ ...value, [type]: value[type] - 1 })}>−</button>
+      <button aria-label={`Escolher ${energyDefinitions[type].name}`} disabled={chosen >= required || value[type] >= available[type]} onClick={() => onChange({ ...value, [type]: value[type] + 1 })}>+</button>
+      <span className="allocation-label"><EnergyToken type={type} /><span className="sr-only">{energyDefinitions[type].name}</span></span>
+      <output aria-label={`${energyDefinitions[type].name} escolhido`}>{value[type]}</output>
     </div>)}
     <small className="allocation-total" role="status">{chosen}/{required} selecionado(s)</small>
   </div>
@@ -185,7 +186,7 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
   const active = battle.players[battle.activePlayerId]
   const enemy = battle.players[active.id === 'player-1' ? 'player-2' : 'player-1']
   const budget = getQueueBudget(battle, queue)
-  const available = budget?.afterSpecific ?? createEmptyChakraPool()
+  const available = budget?.afterSpecific ?? createEmptyEnergyPool()
   const randomRequired = budget?.randomRequired ?? 0
   const remaining = getRemainingTurnSeconds(battle, session.now)
   const pendingAvailability = pending ? getSkillAvailability(battle, queue, active.id, pending.characterInstanceId, pending.skillId, session.now) : null
@@ -211,11 +212,11 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
     const action: PlannedAction = { ...fresh.pending, playerId: fresh.battle.activePlayerId, targetInstanceId: member.instanceId }
     const result = appendAction(fresh.battle, fresh.queue, action, fresh.now)
     if (!result.ok) { commit({ ...fresh, error: result.reason }); return }
-    commit({ ...fresh, queue: result.queue, pending: null, randomPayment: createEmptyChakraPool(), error: '', notice: 'Ação atribuída. Clique no espaço da ação para cancelar ou confirme o turno.' })
+    commit({ ...fresh, queue: result.queue, pending: null, randomPayment: createEmptyEnergyPool(), error: '', notice: 'Ação atribuída. Clique no espaço da ação para cancelar ou confirme o turno.' })
   }, [activeSession, commit, inspect])
   const removeAction = useCallback((instanceId: string) => {
     const fresh = activeSession()
-    if (fresh) commit({ ...fresh, queue: fresh.queue.filter((entry) => entry.characterInstanceId !== instanceId), randomPayment: createEmptyChakraPool(), error: '', notice: 'Ação cancelada. Chakra reservado liberado.' })
+    if (fresh) commit({ ...fresh, queue: fresh.queue.filter((entry) => entry.characterInstanceId !== instanceId), randomPayment: createEmptyEnergyPool(), error: '', notice: energyLabels.actionCancelled })
   }, [activeSession, commit])
   const moveAction = useCallback((from: number, to: number) => {
     const fresh = activeSession()
@@ -225,13 +226,13 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
   }, [activeSession, commit])
   const openConfirmation = useCallback(() => {
     const fresh = activeSession()
-    if (fresh?.battle.phase === 'planning') commit({ ...fresh, pending: null, exchangeOpen: false, randomPayment: createEmptyChakraPool(), error: '', notice: '', battle: { ...fresh.battle, phase: 'confirmation' } })
+    if (fresh?.battle.phase === 'planning') commit({ ...fresh, pending: null, exchangeOpen: false, randomPayment: createEmptyEnergyPool(), error: '', notice: '', battle: { ...fresh.battle, phase: 'confirmation' } })
   }, [activeSession, commit])
   const closeDialog = useCallback(() => {
     const fresh = activeSession()
-    if (fresh) commit({ ...fresh, exchangeOpen: false, surrenderPending: false, error: '', randomPayment: createEmptyChakraPool(), battle: { ...fresh.battle, phase: 'planning' } })
+    if (fresh) commit({ ...fresh, exchangeOpen: false, surrenderPending: false, error: '', randomPayment: createEmptyEnergyPool(), battle: { ...fresh.battle, phase: 'planning' } })
   }, [activeSession, commit])
-  const changeAllocation = useCallback((value: ChakraPool) => {
+  const changeAllocation = useCallback((value: EnergyPool) => {
     const fresh = activeSession()
     if (fresh) commit({ ...fresh, error: '', ...(fresh.exchangeOpen ? { sacrificed: value } : { randomPayment: value }) })
   }, [activeSession, commit])
@@ -239,8 +240,8 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
     const fresh = activeSession()
     if (!fresh) return
     const next = applyExchange(fresh.battle, fresh.queue, fresh.sacrificed, fresh.chosenType, fresh.now)
-    if (!next) { commit({ ...fresh, error: `A troca exige ${chakraRules.exchangeCost} chakras e deve preservar o pagamento das ações atribuídas.` }); return }
-    commit({ ...fresh, battle: next, sacrificed: createEmptyChakraPool(), error: '', notice: 'Troca aplicada. Ela permanece mesmo se o turno terminar sem ações.' })
+    if (!next) { commit({ ...fresh, error: energyLabels.exchangeBudgetError(energyRules.exchangeCost) }); return }
+    commit({ ...fresh, battle: next, sacrificed: createEmptyEnergyPool(), error: '', notice: 'Troca aplicada. Ela permanece mesmo se o turno terminar sem ações.' })
   }, [activeSession, commit])
   const surrender = useCallback(() => {
     const fresh = activeSession()
@@ -285,14 +286,14 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
         <div className="turn-center">
           <button className="ready-button" disabled={battle.phase !== 'planning'} onClick={openConfirmation}>PRESS WHEN READY</button>
           <div className="turn-meter"><progress max={60} value={remaining} aria-label="Tempo restante do turno" /><span role="timer" aria-label="Segundos restantes">{remaining}s</span></div>
-          <div className="chakra-reserve" aria-label="Chakra após custos específicos">
-            {chakraTypes.map((type) => <span key={type} title={chakraDefinitions[type].name}><ChakraToken type={type} /><span className="sr-only">{chakraDefinitions[type].name}: </span>× {available[type]}</span>)}
-            <span title="Total de chakra livre, contando cada unidade independentemente do tipo"><ChakraToken type="random" />× {budget?.freeTotal ?? 0}</span>
-            <b title="Custos qualquer reservados: escolha os tipos ao finalizar">A escolher: {randomRequired}</b>
+          <div className="energy-reserve" aria-label={energyLabels.afterSpecificCosts}>
+            {energyTypes.map((type) => <span key={type} title={energyDefinitions[type].name}><EnergyToken type={type} /><span className="sr-only">{energyDefinitions[type].name}: </span>× {available[type]}</span>)}
+            <span title={energyLabels.freeTotal}><EnergyToken type="random" />× {budget?.freeTotal ?? 0}</span>
+            <b title={energyLabels.reservedHelp}>{energyLabels.pending}: {randomRequired}</b>
           </div>
           <button className="exchange-link" onClick={() => {
-            const fresh = activeSession(); if (fresh) commit({ ...fresh, pending: null, exchangeOpen: true, sacrificed: createEmptyChakraPool(), error: '' })
-          }}>EXCHANGE CHAKRA</button>
+            const fresh = activeSession(); if (fresh) commit({ ...fresh, pending: null, exchangeOpen: true, sacrificed: createEmptyEnergyPool(), error: '' })
+          }}>{energyLabels.exchange}</button>
         </div>
         <div className="player-card enemy-player"><strong>{playerName(enemy.id)}</strong><small>EQUIPE ADVERSÁRIA</small><small>Teste local · equipe espelhada</small></div>
       </header>
@@ -308,7 +309,7 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
           <div className="turn-help" role={session.error ? 'alert' : 'status'}>
             {session.error ? errors[session.error] ?? session.error : pending ? 'Clique em um alvo dourado para atribuir a habilidade.' : session.notice || 'Clique em um personagem ou habilidade para consultar.'}
           </div>
-          <small className="queue-summary">Ações atribuídas: {queue.length}/3 · Qualquer reservado: {randomRequired}</small>
+          <small className="queue-summary">Ações atribuídas: {queue.length}/3 · {energyLabels.reserved}: {randomRequired}</small>
           <details className="battle-history"><summary>Histórico</summary><ul>{session.log.map((entry, index) => <li key={`${index}:${entry}`}>{entry}</li>)}</ul></details>
         </aside>
         <div className="inspection-area">
@@ -321,22 +322,30 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
       </footer>
     </div>
 
-    {battle.phase === 'confirmation' && <div className="battle-overlay"><section className="battle-dialog chakra-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmation-title" onKeyDown={(event) => dialogKeys(event, closeDialog)}>
-      <h2 id="confirmation-title" ref={dialogHeading} tabIndex={-1}>CHOOSE <em>{randomRequired}</em> RANDOM CHAKRA(S)</h2>
+    {battle.phase === 'confirmation' && <div className="battle-overlay"><section className="battle-dialog energy-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmation-title" onKeyDown={(event) => dialogKeys(event, closeDialog)}>
+      <h2 id="confirmation-title" ref={dialogHeading} tabIndex={-1}>{energyLabels.choose} <em>{randomRequired}</em> {energyLabels.randomUnits(randomRequired)}</h2>
       <AllocationPicker available={available} value={session.randomPayment} required={randomRequired} onChange={changeAllocation} />
       <QueueStrip battle={battle} queue={queue} onMove={moveAction} onRemove={removeAction} />
       {queue.length === 0 && <p className="dialog-note">O turno será encerrado sem habilidades.</p>}
       {session.error && <p className="dialog-error" role="alert">{errors[session.error] ?? session.error}</p>}
-      <div className="dialog-actions"><button disabled={!budget || chakraTotal(session.randomPayment) !== randomRequired} onClick={() => commit(confirmSession(current.current, Date.now()))}>OK</button><button onClick={closeDialog}>CANCEL</button></div>
+      <div className="dialog-actions"><button disabled={!budget || energyTotal(session.randomPayment) !== randomRequired} onClick={() => commit(confirmSession(current.current, Date.now()))}>OK</button><button onClick={closeDialog}>CANCEL</button></div>
       <small className="dialog-clock">Tempo restante: {remaining}s · arraste os ícones para ordenar</small>
     </section></div>}
 
-    {session.exchangeOpen && <div className="battle-overlay"><section className="battle-dialog chakra-dialog" role="dialog" aria-modal="true" aria-labelledby="exchange-title" onKeyDown={(event) => dialogKeys(event, closeDialog)}>
-      <h2 id="exchange-title" ref={dialogHeading} tabIndex={-1}>EXCHANGE <em>{chakraRules.exchangeCost}</em> CHAKRAS FOR <em>{chakraRules.exchangeGain}</em></h2>
-      <AllocationPicker available={available} value={session.sacrificed} required={chakraRules.exchangeCost} onChange={changeAllocation} />
-      <label className="receive-chakra">Receber <select value={session.chosenType} onChange={(event) => commit({ ...current.current, chosenType: event.target.value as ChakraType })}>{chakraTypes.map((type) => <option key={type} value={type}>{chakraDefinitions[type].name}</option>)}</select></label>
+    {session.exchangeOpen && <div className="battle-overlay"><section className="battle-dialog energy-dialog" role="dialog" aria-modal="true" aria-labelledby="exchange-title" onKeyDown={(event) => dialogKeys(event, closeDialog)}>
+      <h2 id="exchange-title" ref={dialogHeading} tabIndex={-1}>{energyLabels.trade} <em>{energyRules.exchangeCost}</em> {energyLabels.units(energyRules.exchangeCost)} {energyLabels.for} <em>{energyRules.exchangeGain}</em></h2>
+      <AllocationPicker available={available} value={session.sacrificed} required={energyRules.exchangeCost} onChange={changeAllocation} />
+      <div className="receive-energy" role="radiogroup" aria-label={energyLabels.receiveChoice}>
+        <span>{energyLabels.receive}</span>
+        {energyTypes.map((type) => <label key={type} className="energy-choice" title={energyDefinitions[type].name}>
+          <input type="radio" name="received-energy" value={type} checked={session.chosenType === type}
+            onChange={() => commit({ ...current.current, chosenType: type })} />
+          <EnergyToken type={type} />
+          <span className="sr-only">{energyDefinitions[type].name}</span>
+        </label>)}
+      </div>
       {session.error && <p className="dialog-error" role="alert">{errors[session.error] ?? session.error}</p>}
-      <div className="dialog-actions"><button disabled={chakraTotal(session.sacrificed) !== chakraRules.exchangeCost} onClick={applyTrade}>APPLY</button><button onClick={closeDialog}>CANCEL</button></div>
+      <div className="dialog-actions"><button disabled={energyTotal(session.sacrificed) !== energyRules.exchangeCost} onClick={applyTrade}>APPLY</button><button onClick={closeDialog}>CANCEL</button></div>
       <small className="dialog-clock">Após Apply, a troca é irreversível. Tempo: {remaining}s</small>
     </section></div>}
 

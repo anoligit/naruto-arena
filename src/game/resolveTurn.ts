@@ -23,7 +23,7 @@ export type TurnResolution =
     }
 
 // Call only when the player confirms the complete ordered queue.
-// Invalid queues spend no chakra and execute no actions. Applied exchanges are
+// Invalid queues spend no energy and execute no actions. Applied exchanges are
 // already part of the input state, so cancellation or timeout cannot undo them.
 export function resolveTurn(
   state: BattleState,
@@ -63,7 +63,7 @@ export function resolveTurn(
       .find((character) => character.instanceId === request.targetInstanceId)!
 
     const activeBefore = getActiveStatuses(working, source)
-    player.chakra = validation.chakraAfterPayment
+    player.energy = validation.energyAfterPayment
     source.lastSkillUsedOnTurn = player.turnsStarted
     source.skillReadyOnTurn[skill.id] = getCooldownReadyTurn(player.turnsStarted, skill.cooldown)
 

@@ -1,7 +1,7 @@
 import { getCompleteTeam } from './teamRules'
 import { TURN_DURATION_MS } from './rules'
 import type { Character } from '../data/characters'
-import { createEmptyChakraPool, receiveTurnChakra } from './chakra/index'
+import { createEmptyEnergyPool, receiveTurnEnergy } from './energy/index'
 import type {
   BattleCharacter,
   BattlePlayer,
@@ -55,7 +55,7 @@ now: number = Date.now()
         createCharacter(completeTeam[1]),
         createCharacter(completeTeam[2]),
       ],
-      chakra: createEmptyChakraPool(),
+      energy: createEmptyEnergyPool(),
       turnsStarted: 0,
     }
   }
@@ -68,8 +68,8 @@ now: number = Date.now()
   const startingPlayer = players[startingPlayerId]
 
   startingPlayer.turnsStarted = 1
-  startingPlayer.chakra = receiveTurnChakra(
-    startingPlayer.chakra,
+  startingPlayer.energy = receiveTurnEnergy(
+    startingPlayer.energy,
     3,
     true
   )

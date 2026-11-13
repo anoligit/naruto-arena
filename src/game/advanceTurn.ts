@@ -1,6 +1,6 @@
 import { statuses, hasStatusExpired } from './effects'
 import { TURN_DURATION_MS } from './rules'
-import { receiveTurnChakra } from './chakra/index'
+import { receiveTurnEnergy } from './energy/index'
 import type {
   BattleCharacter,
   BattlePlayer,
@@ -88,8 +88,8 @@ export function advanceTurn(
   players[nextPlayerId] = {
     ...nextPlayer,
     turnsStarted: nextPlayer.turnsStarted + 1,
-    chakra: receiveTurnChakra(
-      nextPlayer.chakra,
+    energy: receiveTurnEnergy(
+      nextPlayer.energy,
       livingCharacters,
       false
     ),

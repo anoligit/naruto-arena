@@ -1,13 +1,13 @@
 import { getRemainingCooldown } from './cooldown'
 import { characters } from '../data/characters'
-import { paySkillCost } from './chakra/index'
+import { paySkillCost } from './energy/index'
 import { statuses } from './effects'
 import { getActiveStatuses, hasActiveModifier, isStunnedForSkill } from './effects'
 import { getBattleSkills } from './skillCatalog'
 import type {
   BattleCharacter,
   BattleState,
-  ChakraPool,
+  EnergyPool,
   PlayerId,
   SkillDefinition,
 } from './types'
@@ -17,7 +17,7 @@ export type SkillUseRequest = {
   characterInstanceId: string
   skillId: string
   targetInstanceId: string
-  randomPayment: ChakraPool
+  randomPayment: EnergyPool
 }
 
 export type SkillUseError =
@@ -44,7 +44,7 @@ export type SkillUseValidation =
   | {
       ok: true
       skill: SkillDefinition
-      chakraAfterPayment: ChakraPool
+      energyAfterPayment: EnergyPool
     }
 
 function hasUnknownStatus(character: BattleCharacter): boolean {
@@ -53,7 +53,7 @@ function hasUnknownStatus(character: BattleCharacter): boolean {
   )
 }
 
-// Validates a proposed action without spending chakra or changing the battle.
+// Validates a proposed action without spending energy or changing the battle.
 // The queue must also prevent two planned actions by the same character.
 export function validateSkillUse(
   state: BattleState,
@@ -115,8 +115,8 @@ export function validateSkillUse(
   if (hasUnknownStatus(target)) return fail('unknown-status')
   if (enemyTarget && hasActiveModifier(state, target, 'invulnerable') && !skill.allowInvulnerableTarget) return fail('target-invulnerable')
 
-  const chakraAfterPayment = paySkillCost(player.chakra, skill.cost, request.randomPayment)
-  if (!chakraAfterPayment) return fail('invalid-payment')
+  const energyAfterPayment = paySkillCost(player.energy, skill.cost, request.randomPayment)
+  if (!energyAfterPayment) return fail('invalid-payment')
 
-  return { ok: true, skill, chakraAfterPayment }
+  return { ok: true, skill, energyAfterPayment }
 }

@@ -1,6 +1,6 @@
-import { formatCooldown } from '../game/cooldown'
-import SkillClasses from '../components/SkillClasses'
-import { formatChakraCost } from '../game/chakra/index'
+import PlayerProfileCard from '../player/PlayerProfileCard'
+import { playerProfile } from '../player/profile'
+import CharacterDetailsPanel from './selection/CharacterDetailsPanel'
 import { imageUrl } from '../utils/imageUrl'
 
 import { useState } from 'react'
@@ -25,12 +25,6 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
 
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
-
-  const skillDetails = selectedCharacter?.skillDefinitions?.find(
-  (skill) => skill.name === selectedSkill
-)
-
-  const chakraCost = skillDetails ? formatChakraCost(skillDetails.cost) : ''
 
   function addToTeam(character: Character) {
     setTeam((currentTeam) => {
@@ -134,7 +128,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
 
     if (
       target.closest(
-        'button, a, input, select, textarea, .skill, .portrait-slot'
+        'button, a, input, select, textarea, .character-details'
       )
     ) {
       return
@@ -144,126 +138,12 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
     setSelectedCharacter(null)
   }}
 >
-      <p className="selection-help">Left-click to view skills. Double-click or right-click to add from the catalog or remove from your team. Drag with the left button between the catalog and your team to add or remove.</p>
-      <section
-  className="character-details"
-  style={{ visibility: selectedCharacter ? 'visible' : 'hidden' }}
->
-  {selectedCharacter && (
-    <>
-      <h2>{selectedCharacter.name}</h2>
-
-      <div className="character-details-top">
-        <button
-          type="button"
-          className="portrait-slot"
-          aria-label={`View description for ${selectedCharacter.name}`}
-          aria-pressed={selectedSkill === null}
-          onClick={() => setSelectedSkill(null)}
-        >
-          {selectedCharacter.image ? (
-            <img
-              src={imageUrl(selectedCharacter.image)}
-              alt={selectedCharacter.name}
-              className="character-portrait"
-              draggable={false}
-            />
-          ) : (
-            <span>{selectedCharacter.name}</span>
-          )}
-        </button>
-
-        <div className="skills">
-          {selectedCharacter.skills.map((skill) => (
-            <button
-              type="button"
-              className="skill"
-              key={skill}
-              title={skill}
-              aria-pressed={selectedSkill === skill}
-              onClick={() => {
-                setSelectedSkill((current) => current === skill ? null : skill)
-              }}
-            >
-              {selectedCharacter.skillImages?.[skill] ? (
-                <img
-                  src={imageUrl(selectedCharacter.skillImages[skill])}
-                  alt={skill}
-                  draggable={false}
-                />
-              ) : (
-                skill
-              )}
-            </button>
-          ))}
-        </div>
-            </div>
-
-      <div className={`character-description${selectedSkill ? ' has-skill-image' : ''}`}>
-        {selectedSkill && (
-          <div className="description-image-slot">
-            {selectedCharacter.skillImages?.[selectedSkill] ? (
-              <img
-                src={imageUrl(selectedCharacter.skillImages[selectedSkill])}
-                alt={selectedSkill}
-                width={120}
-                height={120}
-                draggable={false}
-              />
-            ) : (
-              <span>{selectedSkill}</span>
-            )}
-          </div>
-        )}
-
-        <div className="description-text">
-          <h3>{selectedSkill ?? selectedCharacter.name}</h3>
-          <p>
-            {selectedSkill
-              ? selectedCharacter.skillDescriptions?.[selectedSkill] ??
-                'Descrição desta habilidade ainda não disponível.'
-              : selectedCharacter.description ??
-                'Descrição ainda não disponível.'}
-          </p>
-          {skillDetails && (
-  <dl className="skill-facts">
-    <div>
-      <dt>Chakra</dt>
-      <dd>{chakraCost}</dd>
-    </div>
-
-    <div>
-      <dt>Recarga</dt>
-      <dd>
-        {formatCooldown(skillDetails.cooldown)}
-      </dd>
-    </div>
-
-    <div>
-      <dt>Classes</dt>
-      <dd><SkillClasses classes={skillDetails.classes} /></dd>
-    </div>
-  </dl>
-)}
-          {skillDetails && selectedCharacter.skillDefinitions?.filter((candidate) => candidate.replacement?.skillId === skillDetails.id).map((candidate) => (
-            <button key={candidate.id} className="alternative-skill-link" onClick={() => setSelectedSkill(candidate.name)}>
-              Consultar habilidade alternativa: {candidate.name}
-            </button>
-          ))}
-          {skillDetails?.replacement && (
-            <button className="alternative-skill-link" onClick={() => setSelectedSkill(selectedCharacter.skillDefinitions?.find((candidate) => candidate.id === skillDetails.replacement?.skillId)?.name ?? null)}>
-              Voltar à habilidade original
-            </button>
-          )}
-        </div>
-      </div>
-    </>
-  )}
-</section>
+      <p className="selection-help">Clique esquerdo: consultar. Clique novamente para fechar. Clique duplo ou direito: adicionar ao time ou remover dele. Arraste com o botão esquerdo entre o catálogo e o time.</p>
+      <CharacterDetailsPanel character={selectedCharacter} selectedSkill={selectedSkill} onSkillChange={setSelectedSkill} />
 
 
       <nav className="game-menu">
-        <span>{completeTeam ? 'Team ready · Local battle' : 'Select 3 different characters to play'}</span>
+        <span>{completeTeam ? 'Time pronto · batalha local' : 'Selecione 3 personagens diferentes para jogar'}</span>
         <button disabled={!completeTeam} title="Local test · no ranking" onClick={() => startBattle('ladder')}>Start Ladder Game</button>
         <button disabled={!completeTeam} title="Local test · two players on this computer" onClick={() => startBattle('quick')}>Start Quick Game</button>
         <button disabled={!completeTeam} title="Local test · no online room yet" onClick={() => startBattle('private')}>Start Private Game</button>
@@ -318,28 +198,13 @@ onDoubleClick={() => {
               </button>
             )
           })}
+          {Array.from({ length: Math.max(0, 21 - characters.length) }, (_, index) => (
+            <div key={`empty:${index}`} className="character-placeholder" aria-hidden="true" />
+          ))}
         </div>
 
         <aside className="team-panel">
-          <h3>Your Team</h3>
-          <p>
-            {team.filter(Boolean).length}/3 characters selected
-          </p>
-
-         <button
-  className="add-character"
-  onClick={() => {
-    if (selectedCharacter) addToTeam(selectedCharacter)
-  }}
-  disabled={
-    !selectedCharacter ||
-    team.every(Boolean) ||
-    team.some((member) => member?.id === selectedCharacter?.id)
-  }
->
-  Add selected character
-</button>
-
+          <PlayerProfileCard profile={playerProfile} />
           <div className="team-slots">
             {team.map((member, index) => (
               <div
@@ -388,6 +253,13 @@ onDoubleClick={() => {
               </div>
             ))}
           </div>
+          <p className="team-readiness" role="status">
+            {completeTeam ? 'Seu time está pronto para jogar' : `Selecione 3 personagens (${team.filter(Boolean).length}/3)`}
+          </p>
+          <button className="add-character" onClick={() => { if (selectedCharacter) addToTeam(selectedCharacter) }}
+            disabled={!selectedCharacter || team.every(Boolean) || team.some((member) => member?.id === selectedCharacter.id)}>
+            Adicionar ao time
+          </button>
         </aside>
       </section>
     </div>

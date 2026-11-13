@@ -9,7 +9,7 @@ No início de cada `index.ts`, o bloco `<personagem>Balance` reúne dano, cura, 
 Exemplo: em `narutoBalance.combo.damage`, mudar `15` para `20` altera o dano base e os textos de Combo e Clones. O dano com Clones é calculado usando `narutoBalance.clones.comboMultiplier`; não precisa ser digitado separadamente.
 
 - Dano, cura, proteção e duração: bloco `Balance`.
-- Custo de chakra: `cost` na habilidade.
+- Custo de energia: `cost` na habilidade.
 - Recarga: `cooldown` na habilidade.
 - Classes da própria habilidade: `classes` na habilidade.
 - Imagens: imports no topo e pasta `images/`.
