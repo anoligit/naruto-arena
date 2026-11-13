@@ -22,7 +22,7 @@ Cada personagem possui uma pasta com `index.ts` e `images/`. O arquivo do Zabuza
 | Classes da habilidade | `skill.classes`. |
 | Classes bloqueadas por stun | `statuses[].modifiers` com `type: 'stun'`. |
 | Duração do efeito | `statuses[].duration`; não é o cooldown. |
-| Alvo | `skill.target`: `self`, `enemy` ou `ally`. |
+| Alvo | `skill.target`: `self`, `enemy`, `ally` ou `self-or-enemy` (o usuário ou um inimigo). |
 | Todos os inimigos vulneráveis | `skill.targetExpansion`. Veja Haku e Zabuza. |
 | Melhoria durante um efeito | `skill.enhancement`. Veja Silent Homicide Technique. |
 | Requisito de uma habilidade | `skill.requirements`; por exemplo, Rasengan exige Clones. |
@@ -70,3 +70,11 @@ Neste protótipo, o requisito é informação exibida na seleção. Ainda não h
 `npm test` verifica combate, energia, registro e indicadores. Os testes dos personagens também conferem valores de referência: ao fazer um balanceamento intencional, atualize a expectativa correspondente no teste. Um erro de digitação em um valor deve continuar sendo detectado.
 
 Descrições numéricas usam as constantes. Mudanças no comportamento exigem também revisar a explicação em português. Use uma batalha nova após editar efeitos; uma partida aberta guarda efeitos criados anteriormente. A publicação exige uma nova compilação.
+
+## Ativação e destinatários
+
+`target` define onde o jogador pode clicar para atribuir a ação. Para névoa do Zabuza, `self-or-enemy` permite ativar nele ou em um inimigo vivo e vulnerável, sem permitir outro aliado.
+
+O efeito persistente usa `recipient: 'user'` para continuar no Zabuza, mesmo quando a ativação foi feita clicando em um inimigo. A aura de custo adicional afeta a equipe inimiga inteira enquanto esse efeito estiver ativo, como antes. Mudar o alvo clicável não transfere a proteção para o inimigo.
+
+Os indicadores planejados mostram os destinatários dos efeitos, incluindo usuário e inimigos afetados pela aura. A ação continua sendo única: cancelar libera a reserva inteira; confirmar cobra uma vez.

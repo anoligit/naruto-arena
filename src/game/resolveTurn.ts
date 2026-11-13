@@ -29,7 +29,8 @@ export type TurnResolution =
 export function resolveTurn(
   state: BattleState,
   actions: readonly SkillUseRequest[],
-  now: number = Date.now()
+  now: number = Date.now(),
+  options: { advanceToNextTurn?: boolean } = {}
 ): TurnResolution {
   if (state.phase === 'finished') {
     return { ok: false, state, reason: 'battle-finished', actionIndex: null }
@@ -102,7 +103,7 @@ export function resolveTurn(
   }
   return {
     ok: true,
-    state: advanceTurn(working, now),
+    state: options.advanceToNextTurn === false ? working : advanceTurn(working, now),
     damageEvents,
     damageResults,
   }

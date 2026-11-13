@@ -25,3 +25,10 @@ import type { Character } from '../src/characters/definition'
 export function renderDetails(character: Character, skill: string | null = null) {
   return renderToStaticMarkup(createElement(CharacterDetailsPanel, { character, selectedSkill: skill, onSkillChange: () => {} }))
 }
+export { getPlannedTargets } from '../src/game/plannedActions'
+export { cancelPlannedAction } from '../src/game/localBattleSession'
+export { previewTurnHealth, visibleBattleForPreview } from '../src/game/healthPreview'
+import BattleHealthBar from '../src/components/BattleHealthBar'
+export function renderHealthBar(health: number, maxHealth: number, projectedHealth?: number) {
+  return renderToStaticMarkup(createElement(BattleHealthBar, { health, maxHealth, projectedHealth, label: 'Vida de teste' }))
+}

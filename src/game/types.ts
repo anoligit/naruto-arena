@@ -6,7 +6,8 @@ import type { EnergyCost, EnergyPool } from './energy/types'
 
 export type { EnergyType, EnergyPool, EnergyCost } from './energy/types'
 
-export type SkillTarget = 'self' | 'enemy' | 'ally'
+// Onde o jogador pode clicar para atribuir a ação. recipient define quem recebe o efeito.
+export type SkillTarget = 'self' | 'enemy' | 'ally' | 'self-or-enemy'
 
 // Condição para ampliar o alvo: sem status, vale em todo uso.
 export type SkillTargetExpansion = {

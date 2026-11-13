@@ -1,75 +1,40 @@
-# React + TypeScript + Vite
+# Naruto Arena
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Protótipo em React, TypeScript e Vite. Inclui seleção automática de personagens, consulta de habilidades e batalha local entre duas equipes de três personagens. O multiplayer online ainda não está implementado.
 
-Currently, two official plugins are available:
+## Executar
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Abra o endereço informado pelo terminal e use Start Playing para abrir o jogo.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Verificar e publicar
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Execute um comando por vez:
 
+```sh
+npm test
+npm run lint
+npm run build
+npm run preview
 ```
+
+O preview usa a compilação mais recente. Para voltar ao desenvolvimento, encerre com Control+C e execute `npm run dev`.
+
+O projeto usa a base `/naruto-arena/` para GitHub Pages. A publicação é feita pelo fluxo já configurado em `.github/workflows`; teste antes de enviar os commits para `main`.
+
+## Onde editar
+
+- `src/characters/<personagem>/index.ts`: personagem, imagens, habilidades, balanceamento e efeitos persistentes. Veja [o guia de cadastro](src/characters/README.md).
+- `src/missions/index.ts`: nomes e IDs das missões. Progresso e desbloqueio por jogador ainda não existem.
+- `src/game/`: regras compartilhadas de combate, energia, classes, recarga, duração e alvos.
+- `src/pages/`: seleção e batalha; apresentam os dados e recebem os cliques.
+- `src/Game.css` e `src/Battle.css`: layout da seleção e batalha.
+- `src/player/profile.ts`: perfil de visitante exibido na seleção.
+- `src/useTeam.ts`, `src/teamState.ts` e `src/teamStorage.ts`: estado, sincronização entre janelas e salvamento do time.
+- `tests/`: verificações automáticas. Não precisam de servidor aberto ou dependências adicionais.
+
+Os dados das habilidades existem uma vez. O registro monta o catálogo e reúne os efeitos, sem listas de nomes, imagens ou descrições duplicadas na interface.

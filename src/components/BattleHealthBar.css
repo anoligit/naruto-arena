@@ -1,0 +1,13 @@
+/* Números escuros sobre as quatro cores e suas versões provisórias claras. */
+.combat-health b {
+  color: #111;
+  text-shadow: 0 1px 1px #ffffff80;
+}
+
+/* Apenas o trecho previsto muda de tom; a vida já perdida continua branca. */
+.combat-health .health-preview-segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}

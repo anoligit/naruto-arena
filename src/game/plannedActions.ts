@@ -1,4 +1,4 @@
-import { getSkillTargets } from './targeting/index'
+import { getAffectedCharacters } from './targeting/index'
 import { getEffectiveSkill } from './skillCatalog'
 import { characters } from '../data/characters'
 import { createEmptyEnergyPool, paySkillCost, energyTotal, energyDisplayOrder as energyTypes } from './energy/index'
@@ -21,7 +21,7 @@ export function getPlannedTargets(battle: BattleState, action: PlannedAction): B
   const source = battle.players[action.playerId].team.find((member) => member.instanceId === action.characterInstanceId)
   const skill = skillForAction(battle, action)
   const target = Object.values(battle.players).flatMap((owner) => owner.team).find((member) => member.instanceId === action.targetInstanceId)
-  return source && skill && target ? getSkillTargets(battle, action.playerId, source, skill, target) : []
+  return source && skill && target ? getAffectedCharacters(battle, action.playerId, source, skill, target) : []
 }
 
 export type QueueBudget = {

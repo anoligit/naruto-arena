@@ -1,3 +1,5 @@
+import BattleHealthBar from '../components/BattleHealthBar'
+import { previewTurnHealth } from '../game/healthPreview'
 import { getEnemyCostEffects } from '../game/energy/skillCost'
 import { formatSkillClasses } from '../game/classes'
 import { energyLabels } from '../game/energy/index'
@@ -5,13 +7,13 @@ import EffectIndicator from '../components/EffectIndicator'
 import { formatRemainingCooldown } from '../game/cooldown'
 import EnergyToken from '../components/EnergyToken'
 import { imageUrl } from '../utils/imageUrl'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { characters } from '../data/characters'
 import { createEmptyEnergyPool, energyTotal, energyDisplayOrder as energyTypes, energyDefinitions, energyRules } from '../game/energy/index'
 import { statuses, getActiveStatuses, describeStatusEffect, formatStatusDuration, isStatusVisible } from '../game/effects'
 import { getRemainingTurnSeconds } from '../game/turnTimer'
-import { appendAction, applyExchange, confirmSession, createLocalSession, tickSession } from '../game/localBattleSession'
+import { cancelPlannedAction, appendAction, applyExchange, confirmSession, createLocalSession, tickSession } from '../game/localBattleSession'
 import type { BattleMode, LocalBattleSession } from '../game/localBattleSession'
 import { getQueueBudget, skillForAction, getPlannedTargets } from '../game/plannedActions'
 import type { PlannedAction } from '../game/plannedActions'
@@ -105,14 +107,14 @@ function QueueStrip({ battle, queue, onMove, onRemove }: {
 }) {
   return <ol className="turn-queue" aria-label="Ordem das habilidades">{queue.map((action, index) => {
     const skill = skillForAction(battle, action)
-    const target = allMembers(battle).find((entry) => entry.instanceId === action.targetInstanceId)
+    const targets = getPlannedTargets(battle, action).map((member) => definitionOf(member)?.name).join(', ')
     return <li key={action.characterInstanceId} draggable onDragStart={(event) => event.dataTransfer.setData('queue-index', String(index))}
       onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
         event.preventDefault()
         const from = event.dataTransfer.getData('queue-index')
         if (from !== '' && Number.isInteger(Number(from))) onMove(Number(from), index)
       }}>
-      <div className="queue-image" title={`${index + 1}. ${skill?.name} → ${target ? definitionOf(target)?.name : ''}`}>
+      <div className="queue-image" title={`${index + 1}. ${skill?.name} → ${targets}`}>
         <SkillImage image={skill?.image} name={skill?.name ?? action.skillId} /><b>{index + 1}</b>
         <button className="queue-remove" aria-label={`Remover ${skill?.name}`} onClick={() => onRemove(action.characterInstanceId)}>×</button>
       </div>
@@ -199,6 +201,7 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
   }, [commit])
 
   const { battle, queue, pending } = session
+  const healthPreview = useMemo(() => previewTurnHealth(battle, queue, battle.activePlayerId, session.now), [battle, queue, session.now])
   const active = battle.players[battle.activePlayerId]
   const enemy = battle.players[active.id === 'player-1' ? 'player-2' : 'player-1']
   const budget = getQueueBudget(battle, queue)
@@ -228,11 +231,11 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
     const action: PlannedAction = { ...fresh.pending, playerId: fresh.battle.activePlayerId, targetInstanceId: member.instanceId }
     const result = appendAction(fresh.battle, fresh.queue, action, fresh.now)
     if (!result.ok) { commit({ ...fresh, error: result.reason }); return }
-    commit({ ...fresh, queue: result.queue, pending: null, randomPayment: createEmptyEnergyPool(), error: '', notice: 'Ação atribuída. Clique no espaço da ação para cancelar ou confirme o turno.' })
+    commit({ ...fresh, queue: result.queue, pending: null, randomPayment: createEmptyEnergyPool(), error: '', notice: 'Ação atribuída. O trecho claro mostra a alteração prevista na vida. Cancele no espaço da ação ou confirme o turno.' })
   }, [activeSession, commit, inspect])
   const removeAction = useCallback((instanceId: string) => {
     const fresh = activeSession()
-    if (fresh) commit({ ...fresh, queue: fresh.queue.filter((entry) => entry.characterInstanceId !== instanceId), randomPayment: createEmptyEnergyPool(), error: '', notice: energyLabels.actionCancelled })
+    if (fresh) commit({ ...cancelPlannedAction(fresh, instanceId), notice: energyLabels.actionCancelled })
   }, [activeSession, commit])
   const moveAction = useCallback((from: number, to: number) => {
     const fresh = activeSession()
@@ -274,15 +277,14 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
     const assigned = queue.find((action) => action.characterInstanceId === member.instanceId)
     const assignedSkill = assigned && skillForAction(battle, assigned)
     const eligible = pendingAvailability?.targetInstanceIds.includes(member.instanceId) ?? false
-    const percentage = member.health / member.maxHealth * 100
     return <article key={member.instanceId} className={`combat-member ${isAlly ? 'ally-member' : 'enemy-member'} ${member.health <= 0 ? 'defeated' : ''}`}>
       <div className="combat-portrait-block">
         <button className={`target-button ${eligible ? 'target-eligible' : ''}`} aria-label={`Consultar ${definition?.name}, ${playerName(ownerId)}${eligible ? ' · alvo válido' : ''}`} title={eligible ? 'Clique para atribuir a habilidade' : 'Clique para consultar'} onClick={() => chooseCharacter(member)}>
           <Portrait member={member} />
         </button>
-        <div className="combat-health" role="progressbar" aria-label={`Vida de ${definition?.name}, ${playerName(ownerId)}`} aria-valuenow={member.health} aria-valuemin={0} aria-valuemax={member.maxHealth}>
-          <span style={{ width: `${percentage}%`, background: percentage > 50 ? '#16d33b' : percentage > 20 ? '#f4d51e' : '#e63d30' }} /><b>{member.health}/{member.maxHealth}</b>
-        </div>
+        <BattleHealthBar health={member.health} maxHealth={member.maxHealth}
+          projectedHealth={healthPreview?.[member.instanceId]?.after}
+          label={`Vida de ${definition?.name}, ${playerName(ownerId)}`} />
         <small className="combat-name">{definition?.name}</small>
       </div>
       <CharacterIndicators battle={battle} queue={queue} member={member} inspect={inspect} />

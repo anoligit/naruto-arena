@@ -79,3 +79,11 @@ export function confirmSession(session: LocalBattleSession, now: number): LocalB
   return { ...createLocalSession(result.state, now),
     log: [...session.log, `Turno ${session.battle.turnNumber}: ${session.queue.length} habilidade(s).`, ...entries].slice(-8) }
 }
+
+// Cancelar uma ação libera a reserva; a energia confirmada permanece intacta.
+export function cancelPlannedAction(session: LocalBattleSession, characterInstanceId: string): LocalBattleSession {
+  if (session.battle.phase === 'finished' || session.battle.turnEndsAt === null || session.now >= session.battle.turnEndsAt) return session
+  const queue = session.queue.filter((action) => action.characterInstanceId !== characterInstanceId)
+  if (queue.length === session.queue.length) return session
+  return { ...session, queue, randomPayment: createEmptyEnergyPool(), error: '' }
+}

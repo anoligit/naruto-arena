@@ -25,3 +25,11 @@ Recarga da habilidade e duração de efeito continuam separadas. O dano normal �
 `presentation.ts` transforma os modificadores em textos: dano, percentuais e classes vêm dos mesmos dados usados no combate. Para complementar a explicação de um efeito específico, edite `indicatorNote` no arquivo do personagem, junto de `modifiers`. Não repita valores numéricos nessa nota quando eles já estão nos modificadores.
 
 A duração exibida vem da expiração real do efeito, separada do cooldown. A aparência e o posicionamento da caixa ficam em `src/components/EffectIndicator.css` e `EffectIndicator.tsx`.
+
+## Previsão de vida
+
+`game/healthPreview.ts` estima o resultado das ações atribuídas. Usa o mesmo `resolveTurn` do combate, sem avançar o turno ou sortear energia. A simulação acontece sobre uma cópia filtrada antes de qualquer validação: efeitos invisíveis ao jogador não entram em custos, alvos, reflexão, dano ou decisões de falha da previsão. Os próprios efeitos invisíveis do jogador continuam conhecidos para ele.
+
+A interface recebe apenas vida atual e estimada. Cancelar, trocar ou reordenar ações recalcula a previsão. A confirmação continua usando o estado completo, por isso um efeito oculto pode produzir um resultado real diferente. A previsão nunca confirma ações ou altera os personagens reais.
+
+Ao implementar uma mecânica nova que afete vida, inclua testes tanto do resultado público quanto da comparação entre cenários com e sem efeitos ocultos. Se essa mecânica tiver efeitos no encerramento do turno, revise o ponto de simulação antes de apresentar a vida do próximo turno.

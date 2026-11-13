@@ -112,7 +112,8 @@ export function validateSkillUse(
   if (
     (skill.target === 'self' && target.instanceId !== character.instanceId) ||
     (skill.target === 'enemy' && !enemyTarget) ||
-    (skill.target === 'ally' && !alliedTarget)
+    (skill.target === 'ally' && !alliedTarget) ||
+    (skill.target === 'self-or-enemy' && target.instanceId !== character.instanceId && !enemyTarget)
   ) return fail('invalid-target')
   if (hasUnknownStatus(target)) return fail('unknown-status')
   if (enemyTarget && isInvulnerableToSkill(state, target, skill) &&
