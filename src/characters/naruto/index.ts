@@ -48,7 +48,7 @@ export const narutoSkills: SkillDefinition[] = [
       specific: { ninjutsu: 1 },
       random: 1,
     },
-    cooldown: 2,
+    cooldown: 1,
     target: 'enemy',
     classes: ['chakra', 'melee', 'instant'],
     requirements: [
