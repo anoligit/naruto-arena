@@ -36,6 +36,8 @@ export type SkillDefinition = {
   classes: SkillClass[]
   requirements?: SkillCondition[]
   effects: SkillEffect[]
+  allowInvulnerableTarget?: boolean
+  replacement?: { skillId: string; whenStatusId: string }
 }
 export type SkillCondition = {
   type: 'has-status'
@@ -47,13 +49,21 @@ export type SkillEffect =
       type: 'damage'
       amount: number
       damageType: 'normal' | 'piercing' | 'affliction'
+      executeIf?: { statusId: string; fromSourceOnly?: boolean; previousUserTurn?: boolean }
     }
   | {
       type: 'apply-status'
       statusId: string
+      recipient?: 'user' | 'target'
+      skipIfUntargetable?: boolean
+    }
+  | {
+      type: 'heal'
+      amount: number
     }
 
 export type StatusModifier =
+  | { type: 'reflect'; classes: SkillClass[] }
   | {
       type: 'damage-reduction'
       amount: number
@@ -65,19 +75,28 @@ export type StatusModifier =
     }
   | {
       type: 'stun'
+      classes?: SkillClass[]
     }
   | {
       type: 'invulnerable'
     }
+  | { type: 'damage-reduction-percent'; percent: number }
+  | { type: 'stun-immunity' }
+  | { type: 'damage-taken-multiplier'; skillId: string; multiplier: number; fromSourceOnly?: boolean }
+  | { type: 'damage-taken-bonus'; skillId: string; amount: number; fromSourceOnly?: boolean }
+  | { type: 'on-skill-use-damage'; amount: number; damageType: 'normal' | 'piercing' | 'affliction' }
 
 export type StatusDefinition = {
   id: string
   name: string
   duration: {
-    type: 'opponent-turns'
+    type: 'opponent-turns' | 'owner-turns'
     turns: number
   }
   modifiers: StatusModifier[]
+  endsWhenSourceDies?: boolean
+  invisible?: boolean
+  control?: boolean
 }
 
 
@@ -88,6 +107,8 @@ export type ActiveStatus = {
   statusId: string
   sourcePlayerId: PlayerId
   sourceCharacterId: string
+  sourceSkillId?: string
+  appliedOnUserTurn?: number
   expiration: {
     playerId: PlayerId
     afterTurn: number
@@ -123,4 +144,5 @@ export type BattleState = {
   turnNumber: number
   phase: 'planning' | 'confirmation' | 'finished'
   winnerId: PlayerId | null
+  turnEndsAt: number | null
 }

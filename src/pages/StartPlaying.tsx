@@ -3,6 +3,11 @@ import { useState } from 'react'
 import type { Dispatch, SetStateAction, DragEvent } from 'react'
 import { characters } from '../data/characters'
 import type { Character } from '../data/characters'
+import { createBattle } from '../game/createBattle'
+import { getCompleteTeam } from '../game/teamRules'
+import type { BattleState } from '../game/types'
+import type { BattleMode } from '../game/localBattleSession'
+import LocalBattle from './LocalBattle'
 import '../Game.css'
 
 type StartPlayingProps = {
@@ -11,6 +16,8 @@ type StartPlayingProps = {
 }
 
 function StartPlaying({ team, setTeam }: StartPlayingProps) {
+  const [localBattle, setLocalBattle] = useState<{ state: BattleState; mode: BattleMode } | null>(null)
+  const completeTeam = getCompleteTeam(team)
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
 
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
@@ -107,6 +114,22 @@ const chakraCost = skillDetails
     current?.id === character.id ? null : character
   )
 }
+
+  function startBattle(mode: BattleMode) {
+    const readyTeam = getCompleteTeam(team)
+    if (!readyTeam) return
+    // Local mirror match only; online modes will use a separate opponent later.
+    const state = createBattle(readyTeam, readyTeam, 'player-1', 100)
+    setLocalBattle({ state, mode })
+  }
+
+  if (localBattle) {
+    return <LocalBattle initialState={localBattle.state} mode={localBattle.mode} onContinue={() => {
+      setLocalBattle(null)
+      setSelectedCharacter(null)
+      setSelectedSkill(null)
+    }} />
+  }
 
   return (
     <div
@@ -231,6 +254,16 @@ const chakraCost = skillDetails
     </div>
   </dl>
 )}
+          {skillDetails && selectedCharacter.skillDefinitions?.filter((candidate) => candidate.replacement?.skillId === skillDetails.id).map((candidate) => (
+            <button key={candidate.id} className="alternative-skill-link" onClick={() => setSelectedSkill(candidate.name)}>
+              Consultar habilidade alternativa: {candidate.name}
+            </button>
+          ))}
+          {skillDetails?.replacement && (
+            <button className="alternative-skill-link" onClick={() => setSelectedSkill(selectedCharacter.skillDefinitions?.find((candidate) => candidate.id === skillDetails.replacement?.skillId)?.name ?? null)}>
+              Voltar à habilidade original
+            </button>
+          )}
         </div>
       </div>
     </>
@@ -239,10 +272,10 @@ const chakraCost = skillDetails
 
 
       <nav className="game-menu">
-        <span>Game modes · Coming soon</span>
-        <button disabled title="Battles are not available yet">Start Ladder Game</button>
-        <button disabled title="Battles are not available yet">Start Quick Game</button>
-        <button disabled title="Battles are not available yet">Start Private Game</button>
+        <span>{completeTeam ? 'Team ready · Local battle' : 'Select 3 different characters to play'}</span>
+        <button disabled={!completeTeam} title="Local test · no ranking" onClick={() => startBattle('ladder')}>Start Ladder Game</button>
+        <button disabled={!completeTeam} title="Local test · two players on this computer" onClick={() => startBattle('quick')}>Start Quick Game</button>
+        <button disabled={!completeTeam} title="Local test · no online room yet" onClick={() => startBattle('private')}>Start Private Game</button>
       </nav>
 
       <section className="selection-panel">

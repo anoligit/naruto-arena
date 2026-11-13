@@ -3,10 +3,10 @@ import type { SkillDefinition } from '../types'
 export const narutoSkills: SkillDefinition[] = [
   {
     id: 'naruto-combo',
-    name: 'Naruto Combo',
+    name: 'Uzumaki Naruto Combo',
     description:
-      'Causa 15 de dano físico a um inimigo. Com Clones ativo, causa 30.',
-    image: 'images/naruto/naruto_1_uzumaki-combo.jpg',
+      'Causa 15 de dano físico a um inimigo. Enquanto Shadow Clones estiver ativo em Naruto, causa o dobro de dano: 30.',
+    image: 'images/naruto/naruto_skill_1.jpg',
     cost: {
       specific: { taijutsu: 1 },
     },
@@ -25,8 +25,8 @@ export const narutoSkills: SkillDefinition[] = [
     id: 'naruto-rasengan',
     name: 'Rasengan',
     description:
-      'Requer Clones ativo. Causa 40 de dano a um inimigo e impede o uso de todas as suas habilidades por 1 turno.',
-    image: 'images/naruto/naruto_2_rasengan.jpg',
+      'Requer Shadow Clones ativo em Naruto. Causa 40 de dano a um inimigo e impede o uso das habilidades Physical e Chakra desse alvo durante a próxima jogada dele. Habilidades sem essas classes não são bloqueadas.',
+    image: 'images/naruto/naruto_skill_2.jpg',
     cost: {
       specific: { ninjutsu: 1 },
       random: 1,
@@ -48,7 +48,7 @@ export const narutoSkills: SkillDefinition[] = [
       },
       {
         type: 'apply-status',
-        statusId: 'stun-one-turn',
+        statusId: 'stun-physical-chakra-one-turn',
       },
     ],
   },
@@ -56,8 +56,8 @@ export const narutoSkills: SkillDefinition[] = [
     id: 'naruto-clones-skill',
     name: 'Shadow Clones',
     description:
-      'Naruto recebe 15 de redução de dano por 4 turnos. Durante esse período, Naruto Combo causa o dobro de dano e Rasengan pode ser usado.',
-    image: 'images/naruto/naruto_3_clones.jpg',
+      'Naruto recebe 15 pontos de redução de dano por 4 turnos. O efeito começa na execução e protege durante as quatro próximas jogadas adversárias. Enquanto estiver ativo, Uzumaki Naruto Combo causa 30 de dano e Rasengan fica disponível. A redução não afeta dano piercing ou affliction.',
+    image: 'images/naruto/naruto_skill_3.jpg',
     cost: {
       random: 1,
     },
@@ -75,8 +75,8 @@ export const narutoSkills: SkillDefinition[] = [
     id: 'naruto-sexy',
     name: 'Sexy Technique',
     description:
-      'Naruto fica invulnerável por 1 turno.',
-    image: 'images/naruto/naruto_4_sexy.jpg',
+      'Naruto fica invulnerável às habilidades inimigas durante a próxima jogada adversária. Não remove efeitos que já estavam aplicados.',
+    image: 'images/naruto/naruto_skill_4.jpg',
     cost: {
       random: 1,
     },

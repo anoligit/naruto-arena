@@ -311,3 +311,4 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.alternative-skill-link { display: block; margin-top: 6px; padding: 0; border: 0; color: #7a2523; background: transparent; text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; }
