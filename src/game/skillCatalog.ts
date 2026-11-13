@@ -15,8 +15,7 @@ export function getBattleSkills(state: BattleState, character: BattleCharacter):
 
 export function getBattleSkillNames(state: BattleState, character: BattleCharacter): string[] {
   const skills = getBattleSkills(state, character)
-  return skills.length ? skills.map((skill) => skill.name)
-    : characters.find((entry) => entry.id === character.characterId)?.skills ?? []
+  return skills.map((skill) => skill.name)
 }
 
 // Resolve modificações a partir dos efeitos ativos, sem alterar o cadastro.

@@ -1,3 +1,4 @@
+import { missions } from '../missions'
 import type { Character, CharacterModule } from './definition'
 import type { StatusDefinition } from '../game/types'
 
@@ -15,9 +16,12 @@ function readModule(value: unknown): CharacterModule | null {
   if (typeof value !== 'object' || value === null || !('default' in value)) return null
   const module = value.default as Partial<CharacterModule> | null
   if (!module || !hasId(module.character) || typeof module.character.name !== 'string' || !module.character.name.trim()) return null
-  if (!Array.isArray(module.character.skills) || !Array.isArray(module.character.skillDefinitions) || !module.character.skillDefinitions.every(hasId)) return null
+  if (!Array.isArray(module.character.skillDefinitions) || !module.character.skillDefinitions.every(hasId)) return null
   if (!Array.isArray(module.statuses) || !module.statuses.every(hasId)) return null
   if (module.order !== undefined && (!Number.isFinite(module.order) || typeof module.order !== 'number')) return null
+  if (!module.character.unlockRequirement) return null
+  const requirement = module.character.unlockRequirement
+  if (requirement.type !== 'none' && (requirement.type !== 'mission' || !(requirement.missionId in missions))) return null
   return module as CharacterModule
 }
 
@@ -31,7 +35,7 @@ export function collectCharacterModules(
   for (const [path, value] of Object.entries(discovered)) {
     const module = readModule(value)
     if (!module) {
-      result.issues.push({ path, message: 'Exporte default defineCharacter({ character, statuses, order }) com um cadastro válido.' })
+      result.issues.push({ path, message: 'Exporte default defineCharacter com id, nome, retrato, descrição, requisito e os blocos de habilidades.' })
       continue
     }
     candidates.push({ path, module })

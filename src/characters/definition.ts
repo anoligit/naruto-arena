@@ -1,36 +1,45 @@
 import type { SkillDefinition, StatusDefinition } from '../game/types'
+import type { UnlockRequirement } from '../missions'
 
-export type Character = {
-  id: string
+export type CharacterInfo = {
   name: string
-  image?: string
-  skills: string[]
-  skillImages?: Record<string, string>
-  description?: string
-  unlockRequirement?: { type: 'none' } | { type: 'mission'; id: string; name: string }
-  skillDescriptions?: Record<string, string>
-  skillDefinitions?: SkillDefinition[]
+  image: string
+  description: string
+  unlockRequirement: UnlockRequirement
 }
 
-export function characterWithSkills(
-  id: string, name: string, image: string, description: string, skillDefinitions: SkillDefinition[]
-): Character {
-  return {
-    id, name, image, description, skillDefinitions,
-    skills: skillDefinitions.filter((skill) => !skill.replacement).map((skill) => skill.name),
-    skillImages: Object.fromEntries(skillDefinitions.filter((skill) => skill.image).map((skill) => [skill.name, skill.image!])),
-    skillDescriptions: Object.fromEntries(skillDefinitions.map((skill) => [skill.name, skill.description])),
-  }
+// Nome, imagem e descrição de cada habilidade existem apenas em SkillDefinition.
+export type Character = CharacterInfo & {
+  id: string
+  skillDefinitions: SkillDefinition[]
 }
 
+export type AbilityDefinition = {
+  skill: SkillDefinition
+  statuses?: StatusDefinition[]
+}
 
-// Exportação padrão de cada pasta: personagem, efeitos e posição no catálogo.
+export type CharacterDefinition = CharacterInfo & {
+  id: string
+  order?: number
+  abilities: AbilityDefinition[]
+}
+
 export type CharacterModule = {
   character: Character
   statuses: StatusDefinition[]
   order?: number
 }
 
-export function defineCharacter(module: CharacterModule): CharacterModule {
-  return module
+export function getBaseSkills(character: Character): SkillDefinition[] {
+  return character.skillDefinitions.filter((skill) => !skill.replacement)
+}
+
+// O motor recebe os catálogos; o autor edita somente os blocos do personagem.
+export function defineCharacter({ id, order, abilities, ...info }: CharacterDefinition): CharacterModule {
+  return {
+    character: { id, ...info, skillDefinitions: abilities.map((ability) => ability.skill) },
+    statuses: abilities.flatMap((ability) => ability.statuses ?? []),
+    order,
+  }
 }

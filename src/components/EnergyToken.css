@@ -7,7 +7,7 @@
   vertical-align: middle;
 }
 
-/* Escolha do energy recebido na troca, com mouse ou teclado. */
+/* Escolha da energia recebida na troca, com mouse ou teclado. */
 .energy-choice {
   position: relative;
   display: inline-flex;

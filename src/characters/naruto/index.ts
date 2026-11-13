@@ -1,31 +1,31 @@
 import { n, duration } from '../description'
 import { formatSkillClasses } from '../../game/classes'
-import type { SkillDefinition, StatusDefinition, SkillClass } from '../../game/types'
-import { characterWithSkills, defineCharacter } from '../definition'
 import portrait from './images/naruto_char_1.jpg'
 import comboImage from './images/naruto_skill_1.jpg'
 import rasenganImage from './images/naruto_skill_2.jpg'
 import clonesImage from './images/naruto_skill_3.jpg'
 import sexyImage from './images/naruto_skill_4.jpg'
+import { defineCharacter } from '../definition'
+import type { AbilityDefinition, CharacterInfo } from '../definition'
+import type { SkillClass } from '../../game/types'
 
-// Identificador único: altere ao copiar esta pasta para criar outro personagem.
+// 1. PERSONAGEM — história, retrato e requisito de desbloqueio.
 const characterId = 'naruto'
-
-// Balanceamento: estes valores alimentam o combate e as descrições.
-export const narutoBalance = {
-  combo: { damage: 15 },
-  rasengan: { damage: 40, stunTurns: 1, stunClasses: ['physical', 'chakra'] as SkillClass[] },
-  clones: { reduction: 15, turns: 4, comboMultiplier: 2 },
-  sexy: { turns: 1 },
+const characterInfo: CharacterInfo = {
+  name: 'Uzumaki Naruto',
+  image: portrait,
+  description: 'Genin do Time 7, Naruto é um órfão que sonha em se tornar Hokage. Sua técnica característica, Shadow Clones, permite que ele utilize golpes poderosos como Uzumaki Naruto Combo e Rasengan.',
+  unlockRequirement: { type: 'none' },
 }
 
-// Habilidades: custos, recargas, classes e efeitos aplicados.
-export const narutoSkills: SkillDefinition[] = [
-  {
+// 2. HABILIDADE 1 — UZUMAKI NARUTO COMBO
+const comboDamage = 15
+const clonesComboMultiplier = 2
+const combo: AbilityDefinition = {
+  skill: {
     id: `${characterId}-combo`,
     name: 'Uzumaki Naruto Combo',
-    description:
-      `Causa ${n(narutoBalance.combo.damage)} de dano físico a um inimigo. Enquanto Shadow Clones estiver ativo em Naruto, causa ${n(narutoBalance.combo.damage * narutoBalance.clones.comboMultiplier)} de dano.`,
+    description: `Causa ${n(comboDamage)} de dano físico a um inimigo. Enquanto Shadow Clones estiver ativo em Naruto, causa ${n(comboDamage * clonesComboMultiplier)} de dano.`,
     image: comboImage,
     cost: {
       specific: { taijutsu: 1 },
@@ -36,16 +36,22 @@ export const narutoSkills: SkillDefinition[] = [
     effects: [
       {
         type: 'damage',
-        amount: narutoBalance.combo.damage,
+        amount: comboDamage,
         damageType: 'normal',
       },
     ],
   },
-  {
+}
+
+// 3. HABILIDADE 2 — RASENGAN
+const rasenganDamage = 40
+const rasenganStunTurns = 1
+const rasenganStunClasses = ['physical', 'chakra'] as SkillClass[]
+const rasengan: AbilityDefinition = {
+  skill: {
     id: `${characterId}-rasengan`,
     name: 'Rasengan',
-    description:
-      `Requer Shadow Clones ativo em Naruto. Causa ${n(narutoBalance.rasengan.damage)} de dano a um inimigo e impede o uso das habilidades das classes ${formatSkillClasses(narutoBalance.rasengan.stunClasses)} ${duration(narutoBalance.rasengan.stunTurns)}. Habilidades sem essas classes não são bloqueadas.`,
+    description: `Requer Shadow Clones ativo em Naruto. Causa ${n(rasenganDamage)} de dano a um inimigo e impede o uso das habilidades das classes ${formatSkillClasses(rasenganStunClasses)} ${duration(rasenganStunTurns)}. Habilidades sem essas classes não são bloqueadas.`,
     image: rasenganImage,
     cost: {
       specific: { ninjutsu: 1 },
@@ -63,7 +69,7 @@ export const narutoSkills: SkillDefinition[] = [
     effects: [
       {
         type: 'damage',
-        amount: narutoBalance.rasengan.damage,
+        amount: rasenganDamage,
         damageType: 'normal',
       },
       {
@@ -72,11 +78,23 @@ export const narutoSkills: SkillDefinition[] = [
       },
     ],
   },
-  {
+  statuses: [{
+    id: `${characterId}-rasengan-stun`,
+    indicatorNote: 'Habilidades sem essas classes continuam disponíveis.',
+    name: 'Rasengan',
+    duration: { type: 'opponent-turns', turns: rasenganStunTurns },
+    modifiers: [{ type: 'stun', classes: rasenganStunClasses }],
+  }]
+}
+
+// 4. HABILIDADE 3 — SHADOW CLONES
+const clonesReduction = 15
+const clonesTurns = 4
+const clonesSkill: AbilityDefinition = {
+  skill: {
     id: `${characterId}-clones-skill`,
     name: 'Shadow Clones',
-    description:
-      `Naruto recebe ${n(narutoBalance.clones.reduction)} pontos de redução de dano ${duration(narutoBalance.clones.turns)}. O efeito começa na execução. Enquanto estiver ativo, Uzumaki Naruto Combo causa ${n(narutoBalance.combo.damage * narutoBalance.clones.comboMultiplier)} de dano e Rasengan fica disponível. A redução não afeta dano piercing ou affliction.`,
+    description: `Naruto recebe ${n(clonesReduction)} pontos de redução de dano ${duration(clonesTurns)}. O efeito começa na execução. Enquanto estiver ativo, Uzumaki Naruto Combo causa ${n(comboDamage * clonesComboMultiplier)} de dano e Rasengan fica disponível. A redução não afeta dano piercing ou affliction.`,
     image: clonesImage,
     cost: {
       random: 1,
@@ -91,11 +109,35 @@ export const narutoSkills: SkillDefinition[] = [
       },
     ],
   },
-  {
+  statuses: [{
+    id: `${characterId}-clones`,
+    indicatorNote: 'Permite usar Rasengan enquanto este efeito permanecer ativo.',
+    name: 'Clones das Sombras',
+    duration: {
+      type: 'opponent-turns',
+      turns: clonesTurns,
+    },
+    modifiers: [
+      {
+        type: 'damage-reduction',
+        amount: clonesReduction,
+      },
+      {
+        type: 'damage-multiplier',
+        skillId: `${characterId}-combo`,
+        multiplier: clonesComboMultiplier,
+      },
+    ],
+  }]
+}
+
+// 5. HABILIDADE 4 — SEXY TECHNIQUE
+const sexyTurns = 1
+const sexy: AbilityDefinition = {
+  skill: {
     id: `${characterId}-sexy`,
     name: 'Sexy Technique',
-    description:
-      `Naruto fica invulnerável às novas habilidades inimigas ${duration(narutoBalance.sexy.turns)}. Não remove efeitos que já estavam aplicados.`,
+    description: `Naruto fica invulnerável às novas habilidades inimigas ${duration(sexyTurns)}. Não remove efeitos que já estavam aplicados.`,
     image: sexyImage,
     cost: {
       random: 1,
@@ -110,54 +152,19 @@ export const narutoSkills: SkillDefinition[] = [
       },
     ],
   },
-]
-
-// Efeitos persistentes usados pelas habilidades acima.
-export const narutoStatuses: StatusDefinition[] = [
-  {
-    id: `${characterId}-clones`,
-    indicatorNote: 'Permite usar Rasengan enquanto este efeito permanecer ativo.',
-    name: 'Clones das Sombras',
-    duration: {
-      type: 'opponent-turns',
-      turns: narutoBalance.clones.turns,
-    },
-    modifiers: [
-      {
-        type: 'damage-reduction',
-        amount: narutoBalance.clones.reduction,
-      },
-      {
-        type: 'damage-multiplier',
-        skillId: `${characterId}-combo`,
-        multiplier: narutoBalance.clones.comboMultiplier,
-      },
-    ],
-  },
-  {
-    id: `${characterId}-rasengan-stun`,
-    indicatorNote: 'Habilidades sem essas classes continuam disponíveis.',
-    name: 'Rasengan',
-    duration: { type: 'opponent-turns', turns: narutoBalance.rasengan.stunTurns },
-    modifiers: [{ type: 'stun', classes: narutoBalance.rasengan.stunClasses }],
-  },
-  {
+  statuses: [{
     id: `${characterId}-sexy-invulnerable`,
     indicatorNote: 'Não remove efeitos já aplicados.',
     name: 'Sexy Technique',
-    duration: { type: 'opponent-turns', turns: narutoBalance.sexy.turns },
+    duration: { type: 'opponent-turns', turns: sexyTurns },
     modifiers: [{ type: 'invulnerable' }],
-  },
-]
+  }]
+}
 
-// Cadastro do personagem: retrato, descrição e habilidades.
-export const naruto = characterWithSkills(characterId, 'Uzumaki Naruto', portrait,
-    'Genin do Time 7, Naruto é um órfão que sonha em se tornar Hokage. Sua técnica característica, Shadow Clones, permite que ele utilize golpes poderosos como Uzumaki Naruto Combo e Rasengan.', narutoSkills)
-
-
-// Registro automático: este bloco inclui o personagem e seus efeitos no jogo.
+// REGISTRO AUTOMÁTICO — habilidades e efeitos são reunidos pelo sistema.
 export default defineCharacter({
-  character: naruto,
-  statuses: narutoStatuses,
+  id: characterId,
+  ...characterInfo,
   order: 10,
+  abilities: [combo, rasengan, clonesSkill, sexy],
 })

@@ -1,3 +1,5 @@
+import { getEnemyCostEffects } from '../game/energy/skillCost'
+import { formatSkillClasses } from '../game/classes'
 import { energyLabels } from '../game/energy/index'
 import EffectIndicator from '../components/EffectIndicator'
 import { formatRemainingCooldown } from '../game/cooldown'
@@ -77,7 +79,7 @@ function SkillButton({ battle, queue, member, ownerId, skillName, inspection, pe
     aria-label={`${skillName} · ${playerName(ownerId)}`} aria-pressed={selected || armed}
     data-use-available={availability.usable} data-block-reason={availability.reason ?? ''}
     onClick={() => onChoose(member, ownerId, skillName)}>
-    <SkillImage image={skill?.image ?? definition?.skillImages?.[skillName]} name={skillName} />
+    <SkillImage image={skill?.image} name={skillName} />
     {availability.cooldown > 0 && <strong>CD {availability.cooldown}</strong>}
   </button>
 }
@@ -143,6 +145,20 @@ function CharacterIndicators({ battle, queue, member, inspect }: {
           lines={definition ? describeStatusEffect(definition, sourceSkills) : ['Efeito ativo.']}
           duration={formatStatusDuration(battle, active, playerName)}
           onConsult={() => inspect(source?.instanceId ?? member.instanceId, skill?.name ?? null)}
+        />
+      })}
+    {getEnemyCostEffects(battle, member)
+      .filter(({ active }) => isStatusVisible(statuses.find((entry) => entry.id === active.statusId), active, battle.activePlayerId))
+      .map(({ source, active, modifiers }) => {
+        const skill = definitionOf(source)?.skillDefinitions?.find((entry) => entry.id === active.sourceSkillId)
+        const name = skill?.name ?? statuses.find((entry) => entry.id === active.statusId)?.name ?? active.statusId
+        return <EffectIndicator
+          key={`enemy-cost:${source.instanceId}:${active.instanceId}`}
+          name={name}
+          image={skill?.image}
+          lines={modifiers.map((modifier) => `As habilidades ${formatSkillClasses(modifier.classes)} deste personagem custam ${modifier.random} energia aleatória adicional por uso.`)}
+          duration={formatStatusDuration(battle, active, playerName)}
+          onConsult={() => inspect(source.instanceId, skill?.name ?? null)}
         />
       })}
     {queue.filter((action) => getPlannedTargets(battle, action).some((target) => target.instanceId === member.instanceId)).map((action) => {

@@ -8,8 +8,6 @@
   min-height: 650px;
   margin: 0 auto;
   padding: 12px 18px;
-  color: #201b14;
-  background: radial-gradient(ellipse at 48% 20%, #83b2a4aa, transparent 65%), linear-gradient(135deg, #427976, #192f34 80%);
   font: 14px/1.3 'Arial Narrow', Arial, sans-serif;
 }
 
@@ -40,7 +38,7 @@
   height: 100%;
 }
 
-/* 2. Cabeçalho, tempo e energys */
+/* 2. Cabeçalho, tempo e energias */
 
 .battle-header {
   display: grid;
@@ -48,20 +46,12 @@
   gap: 28px;
   align-items: start;
   padding: 2px 24px 0;
-  color: #fff4d0;
-  text-shadow: 1px 1px #153337;
 }
 
 .player-card {
   display: grid;
   gap: 3px;
   padding-top: 14px;
-}
-
-.player-card strong {
-  color: #ffdb70;
-  font-size: 25px;
-  text-transform: uppercase;
 }
 
 .player-card small {
@@ -77,13 +67,9 @@
 }
 
 .ready-button {
-  border: 0;
-  background: none;
-  text-shadow: 0 1px #ddd;
   color: #151919 !important;
   font-size: 20px !important;
   font-weight: 900 !important;
-  padding: 0;
   line-height: 1.1;
 }
 
@@ -134,8 +120,6 @@
   justify-content: center;
   gap: 10px;
   align-items: center;
-  color: #0e1b1b;
-  text-shadow: 0 0 3px #bce6cf;
   font-size: 15px;
   font-weight: bold;
 }
@@ -159,7 +143,6 @@
   font-weight: bold !important;
   font-size: 13px !important;
   color: #142022 !important;
-  text-shadow: 0 0 3px #c5e7d2;
 }
 
 .exchange-link:hover {
@@ -264,8 +247,6 @@
 
 .combat-name {
   display: block;
-  color: #fff5d0;
-  text-shadow: 1px 1px #142c2f;
   font-size: 10px;
   line-height: 1.1;
   margin-top: 2px;
@@ -286,10 +267,6 @@
   display: flex;
   align-items: center;
   gap: 26px;
-  background: #f4e8bf;
-  border: 6px solid #993024;
-  border-left-width: 12px;
-  box-shadow: inset 0 0 0 2px #d9bd85, 1px 2px 3px #102a2b80;
   padding: 10px 16px 10px 20px;
   min-height: calc(var(--skill) + 32px);
   margin-left: -4px;
@@ -323,9 +300,6 @@
   width: var(--skill);
   height: var(--skill);
   padding: 0;
-  border: 2px solid #211e17;
-  border-radius: 0;
-  background: #f5e8c4;
   overflow: hidden;
 }
 
@@ -344,8 +318,6 @@
 }
 
 .assigned-skill {
-  background: #404040;
-  color: #a3a3a3 !important;
   font-size: 52px !important;
   font-weight: bold !important;
 }
@@ -468,27 +440,20 @@
 }
 
 .scroll-button {
-  border: 4px solid #963426;
   padding: 9px;
   font-weight: bold !important;
-  background: #f1dfac;
-  box-shadow: inset 0 0 0 2px #c9aa6e;
 }
 
 .turn-help {
   font-size: 12px;
-  color: white;
-  text-shadow: 1px 1px #1d3637;
   min-height: 32px;
 }
 
 .queue-summary {
-  color: #fff4ca;
   font-size: 11px;
 }
 
 .battle-history {
-  color: #fff4ca;
   font-size: 11px;
 }
 
@@ -506,18 +471,13 @@
   z-index: 6;
   padding: 14px 14px 14px 26px;
   color: #241b11;
-  background: #f9edca;
-  border: 2px solid #963426;
 }
 
 .inspection-area {
   display: grid;
   grid-template-rows: 32px minmax(0, 1fr) 22px;
   min-height: 0;
-  border: 5px solid #993024;
   padding: 5px 12px 5px 16px;
-  background: #f4e8bf;
-  box-shadow: inset 0 0 0 2px #d4b77f;
 }
 
 .inspection-toolbar {
@@ -665,10 +625,7 @@
   max-height: calc(100dvh - 40px);
   overflow: auto;
   padding: 24px 28px 20px 48px;
-  border: 7px solid #963025;
-  background: #f5e8bc;
   color: #211b13;
-  box-shadow: inset 0 0 0 2px #c5a56d, 3px 7px 30px #0008;
   font: 14px/1.3 'Arial Narrow', Arial, sans-serif;
 }
 
@@ -846,8 +803,6 @@
 }
 
 .dialog-actions button, .continue-button {
-  border: 1px solid #493b27;
-  background: #fff0bc;
   min-width: 115px;
   padding: 6px 12px;
   font-size: 17px;
@@ -935,10 +890,6 @@
     gap: 12px;
   }
 
-  .player-card strong {
-    font-size: 20px;
-  }
-
   .combat-field {
     grid-template-columns: minmax(0, 1fr) 120px;
     gap: 16px;
@@ -987,10 +938,6 @@
     gap: 5px;
   }
 
-  .player-card strong {
-    font-size: 14px;
-  }
-
   .player-card small {
     font-size: 8px;
   }
@@ -1012,7 +959,6 @@
   .skill-scroll {
     gap: 8px;
     padding: 8px;
-    border-width: 4px;
   }
 
   .battle-skills {
@@ -1094,7 +1040,7 @@
   font-size: inherit;
 }
 
-/* 10. Aparência atual — estas regras sobrescrevem as anteriores */
+/* 10. Cores e acabamento da aparência atual */
 
 .local-battle {
   background: #d6c49a;

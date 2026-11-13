@@ -1,5 +1,5 @@
-import type { ActiveStatus, SkillEffect, DamageType } from './effects/types'
-export type { ActiveStatus, SkillEffect, StatusModifier, StatusDefinition } from './effects/types'
+import type { ActiveStatus, DamageType, SkillEffect } from './effects/types'
+export type { ActiveStatus, DamageType, SkillEffect, StatusModifier, StatusDefinition } from './effects/types'
 import type { SkillClass } from './classes/types'
 export type { SkillClass } from './classes/types'
 import type { EnergyCost, EnergyPool } from './energy/types'
@@ -7,6 +7,19 @@ import type { EnergyCost, EnergyPool } from './energy/types'
 export type { EnergyType, EnergyPool, EnergyCost } from './energy/types'
 
 export type SkillTarget = 'self' | 'enemy' | 'ally'
+
+// Condição para ampliar o alvo: sem status, vale em todo uso.
+export type SkillTargetExpansion = {
+  whenUserHasStatus?: string
+  target: 'all-vulnerable-enemies'
+}
+
+// Melhoria aplicada somente enquanto o status estiver ativo no próprio usuário.
+export type SkillEnhancement = {
+  whenUserHasStatus: string
+  damage?: { amount: number; damageType: DamageType }
+  ignoreInvulnerability?: boolean
+}
 
 export type SkillDefinition = {
   id: string
@@ -16,15 +29,8 @@ export type SkillDefinition = {
   cost: EnergyCost
   cooldown: number
   target: SkillTarget
-  targetExpansion?: {
-    whenUserHasStatus?: string
-    target: 'all-vulnerable-enemies'
-  }
-  enhancement?: {
-    whenUserHasStatus: string
-    damage?: { amount: number; damageType: DamageType }
-    ignoreInvulnerability?: boolean
-  }
+  targetExpansion?: SkillTargetExpansion
+  enhancement?: SkillEnhancement
   classes: SkillClass[]
   requirements?: SkillCondition[]
   effects: SkillEffect[]

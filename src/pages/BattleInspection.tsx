@@ -22,9 +22,9 @@ export default function BattleInspectionPanel({ battle, inspection, onCharacter,
   const skillName = inspection?.skillName
   const baseSkill = definition?.skillDefinitions?.find((entry) => entry.name === skillName)
   const skill = member && baseSkill ? getEffectiveSkill(battle, member, baseSkill) : baseSkill
-  const image = skillName ? skill?.image ?? definition?.skillImages?.[skillName] : definition?.image
+  const image = skillName ? skill?.image : definition?.image
   const description = skillName
-    ? skill?.description ?? definition?.skillDescriptions?.[skillName] ?? 'Regras desta habilidade ainda não cadastradas.'
+    ? skill?.description ?? 'Regras desta habilidade ainda não cadastradas.'
     : definition?.description ?? 'Descrição deste personagem ainda não cadastrada.'
 
   return <section className="battle-inspection" aria-label="Consulta de personagens e habilidades">

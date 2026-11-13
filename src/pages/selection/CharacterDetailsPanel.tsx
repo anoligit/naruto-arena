@@ -1,3 +1,5 @@
+import { getBaseSkills } from '../../characters/definition'
+import { describeUnlockRequirement } from '../../missions'
 import { energyLabels } from '../../game/energy/index'
 import { formatCooldown } from '../../game/cooldown'
 import EnergyCost from '../../components/EnergyCost'
@@ -13,9 +15,9 @@ type Props = {
 
 export default function CharacterDetailsPanel({ character, selectedSkill, onSkillChange }: Props) {
   const skill = character?.skillDefinitions?.find((entry) => entry.name === selectedSkill)
-  const image = selectedSkill ? character?.skillImages?.[selectedSkill] : character?.image
+  const image = selectedSkill ? skill?.image : character?.image
   const description = selectedSkill
-    ? character?.skillDescriptions?.[selectedSkill] ?? 'Descrição desta habilidade ainda não disponível.'
+    ? skill?.description ?? 'Descrição desta habilidade ainda não disponível.'
     : character?.description ?? 'Descrição ainda não disponível.'
   return <section className="character-details" aria-label="Consulta de personagens e habilidades"
     style={{ visibility: character ? 'visible' : 'hidden' }}>
@@ -28,10 +30,10 @@ export default function CharacterDetailsPanel({ character, selectedSkill, onSkil
             className="character-portrait" draggable={false} /> : <span>{character.name}</span>}
         </button>
         <div className="skills">
-          {character.skills.map((name) => <button type="button" className="skill" key={name}
+          {getBaseSkills(character).map(({ id, name, image }) => <button type="button" className="skill" key={id}
             title={name} aria-pressed={selectedSkill === name}
             onClick={() => onSkillChange(selectedSkill === name ? null : name)}>
-            {character.skillImages?.[name] ? <img src={imageUrl(character.skillImages[name])} alt={name} draggable={false} /> : name}
+            {image ? <img src={imageUrl(image)} alt={name} draggable={false} /> : name}
           </button>)}
         </div>
       </div>
@@ -46,7 +48,7 @@ export default function CharacterDetailsPanel({ character, selectedSkill, onSkil
           <div className="description-body" tabIndex={0} aria-label="Descrição completa">
             <p>{description}</p>
             {!selectedSkill && character.unlockRequirement && <p className="character-unlock">
-              <strong>Requisito para desbloquear:</strong> {character.unlockRequirement.type === 'none' ? 'Nenhum' : character.unlockRequirement.name}
+              <strong>Requisito para desbloquear:</strong> {describeUnlockRequirement(character.unlockRequirement)}
             </p>}
             {skill && character.skillDefinitions?.filter((candidate) => candidate.replacement?.skillId === skill.id).map((candidate) =>
               <button key={candidate.id} className="alternative-skill-link" onClick={() => onSkillChange(candidate.name)}>
