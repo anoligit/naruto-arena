@@ -15,6 +15,21 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
 
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
 
+  const skillDetails = selectedCharacter?.skillDefinitions?.find(
+  (skill) => skill.name === selectedSkill
+)
+
+const chakraCost = skillDetails
+  ? [
+      ...Object.entries(skillDetails.cost.specific ?? {}).map(
+        ([type, amount]) => `${amount} ${type}`
+      ),
+      ...(skillDetails.cost.random
+        ? [`${skillDetails.cost.random} qualquer`]
+        : []),
+    ].join(' + ') || 'Sem custo'
+  : ''
+
   function addToTeam(character: Character) {
     setTeam((currentTeam) => {
       if (currentTeam.some((member) => member?.id === character.id)) {
@@ -192,6 +207,30 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
               : selectedCharacter.description ??
                 'Descrição ainda não disponível.'}
           </p>
+          {skillDetails && (
+  <dl className="skill-facts">
+    <div>
+      <dt>Chakra</dt>
+      <dd>{chakraCost}</dd>
+    </div>
+
+    <div>
+      <dt>Recarga</dt>
+      <dd>
+        {skillDetails.cooldown === 0
+          ? 'Nenhuma'
+          : `${skillDetails.cooldown} ${
+              skillDetails.cooldown === 1 ? 'turno' : 'turnos'
+            }`}
+      </dd>
+    </div>
+
+    <div>
+      <dt>Classes</dt>
+      <dd>{skillDetails.classes.join(', ')}</dd>
+    </div>
+  </dl>
+)}
         </div>
       </div>
     </>

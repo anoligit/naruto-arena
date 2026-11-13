@@ -290,3 +290,24 @@
   outline: 2px solid #b51d23;
   outline-offset: 2px;
 }
+
+.skill-facts {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.skill-facts > div {
+  display: flex;
+  gap: 6px;
+}
+
+.skill-facts dt {
+  font-weight: bold;
+}
+
+.skill-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
