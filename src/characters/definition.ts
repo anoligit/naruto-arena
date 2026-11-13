@@ -1,4 +1,4 @@
-import type { SkillDefinition } from '../game/types'
+import type { SkillDefinition, StatusDefinition } from '../game/types'
 
 export type Character = {
   id: string
@@ -7,6 +7,7 @@ export type Character = {
   skills: string[]
   skillImages?: Record<string, string>
   description?: string
+  unlockRequirement?: { type: 'none' } | { type: 'mission'; id: string; name: string }
   skillDescriptions?: Record<string, string>
   skillDefinitions?: SkillDefinition[]
 }
@@ -22,3 +23,14 @@ export function characterWithSkills(
   }
 }
 
+
+// Exportação padrão de cada pasta: personagem, efeitos e posição no catálogo.
+export type CharacterModule = {
+  character: Character
+  statuses: StatusDefinition[]
+  order?: number
+}
+
+export function defineCharacter(module: CharacterModule): CharacterModule {
+  return module
+}

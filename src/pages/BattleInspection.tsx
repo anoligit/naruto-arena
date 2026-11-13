@@ -1,3 +1,5 @@
+import { getEffectiveSkill } from '../game/skillCatalog'
+import { describeSkillTarget } from '../game/targeting/index'
 import { energyLabels } from '../game/energy/index'
 import { formatCooldown } from '../game/cooldown'
 import SkillClasses from '../components/SkillClasses'
@@ -18,7 +20,8 @@ export default function BattleInspectionPanel({ battle, inspection, onCharacter,
     .find((entry) => entry.instanceId === inspection?.characterInstanceId)
   const definition = characters.find((entry) => entry.id === member?.characterId)
   const skillName = inspection?.skillName
-  const skill = definition?.skillDefinitions?.find((entry) => entry.name === skillName)
+  const baseSkill = definition?.skillDefinitions?.find((entry) => entry.name === skillName)
+  const skill = member && baseSkill ? getEffectiveSkill(battle, member, baseSkill) : baseSkill
   const image = skillName ? skill?.image ?? definition?.skillImages?.[skillName] : definition?.image
   const description = skillName
     ? skill?.description ?? definition?.skillDescriptions?.[skillName] ?? 'Regras desta habilidade ainda não cadastradas.'
@@ -33,7 +36,7 @@ export default function BattleInspectionPanel({ battle, inspection, onCharacter,
         <p>{description}</p>
         {skill && <dl><div><dt>{energyLabels.cost}</dt><dd><EnergyCost cost={skill.cost} /></dd></div>
           <div><dt>Recarga</dt><dd>{formatCooldown(skill.cooldown, 'full')}</dd></div>
-          <div><dt>Alvo</dt><dd>{skill.target === 'self' ? 'O próprio usuário' : skill.target === 'enemy' ? 'Um inimigo vivo que possa receber esta habilidade' : 'Um aliado vivo que possa receber esta habilidade'}</dd></div>
+          <div><dt>Alvo</dt><dd>{describeSkillTarget(battle, member, skill)}</dd></div>
           <div><dt>Classes</dt><dd><SkillClasses classes={skill.classes} /></dd></div></dl>}
         {skill && onSkill && definition.skillDefinitions?.filter((candidate) => candidate.replacement?.skillId === skill.id).map((candidate) =>
           <button key={candidate.id} onClick={() => onSkill(member.instanceId, candidate.name)}>Consultar habilidade alternativa: {candidate.name}</button>

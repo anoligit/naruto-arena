@@ -1,3 +1,4 @@
+import { getSkillTargets } from './targeting/index'
 import { isValidCooldown, getCooldownReadyTurn } from './cooldown'
 import { advanceTurn } from './advanceTurn'
 import { expireTurn } from './turnTimer'
@@ -62,23 +63,31 @@ export function resolveTurn(
     const target = Object.values(working.players).flatMap((owner) => owner.team)
       .find((character) => character.instanceId === request.targetInstanceId)!
 
+    const targets = getSkillTargets(working, player.id, source, skill, target)
     const activeBefore = getActiveStatuses(working, source)
     player.energy = validation.energyAfterPayment
     source.lastSkillUsedOnTurn = player.turnsStarted
     source.skillReadyOnTurn[skill.id] = getCooldownReadyTurn(player.turnsStarted, skill.cooldown)
 
-    const { reflected, blockedReflection } = getSkillReflection(working, source, target, skill)
-    for (const [effectIndex, effect] of (blockedReflection ? [] : skill.effects).entries()) {
-      const error = applySkillEffect(effect, {
-        state: working,
-        playerId: reflected && !(effect.type === 'apply-status' && effect.recipient === 'user') ? (player.id === 'player-1' ? 'player-2' : 'player-1') : player.id,
-        source,
-        target: reflected ? source : target,
-        skill,
-        effectIndex,
-        damageEvents,
-      })
-      if (error) return { ok: false, state, reason: error, actionIndex }
+    const appliedSelfEffects = new Set<number>()
+    for (const affectedTarget of targets) {
+      const { reflected, blockedReflection } = getSkillReflection(working, source, affectedTarget, skill)
+      for (const [effectIndex, effect] of (blockedReflection ? [] : skill.effects).entries()) {
+        const appliesToUser = effect.type === 'apply-status' && effect.recipient === 'user'
+        if (appliesToUser && appliedSelfEffects.has(effectIndex)) continue
+        const error = applySkillEffect(effect, {
+          state: working,
+          playerId: reflected && !appliesToUser ? (player.id === 'player-1' ? 'player-2' : 'player-1') : player.id,
+          source,
+          target: reflected ? source : affectedTarget,
+          applicationId: affectedTarget.instanceId,
+          skill,
+          effectIndex,
+          damageEvents,
+        })
+        if (error) return { ok: false, state, reason: error, actionIndex }
+        if (appliesToUser) appliedSelfEffects.add(effectIndex)
+      }
     }
     triggerSkillUseDamage(source, activeBefore, damageEvents)
     for (const owner of Object.values(working.players)) {

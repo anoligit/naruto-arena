@@ -1,12 +1,15 @@
 import { n, duration } from '../description'
 import { formatSkillClasses } from '../../game/classes'
 import type { SkillDefinition, StatusDefinition, SkillClass } from '../../game/types'
-import { characterWithSkills } from '../definition'
+import { characterWithSkills, defineCharacter } from '../definition'
 import portrait from './images/kakashi_char_1.jpeg'
 import skill1Image from './images/kakashi_skill_3.jpg'
 import skill2Image from './images/kakashi_skill_2.jpg'
 import skill3Image from './images/kakashi_skill_1.jpg'
 import skill4Image from './images/kakashi_skill_4.jpg'
+
+// Identificador único: altere ao copiar esta pasta para criar outro personagem.
+const characterId = 'kakashi'
 
 // Balanceamento: estes valores alimentam o combate e as descrições.
 export const kakashiBalance = {
@@ -19,7 +22,7 @@ export const kakashiBalance = {
 // Habilidades: custos, recargas, classes e efeitos aplicados.
 export const kakashiSkills: SkillDefinition[] = [
   {
-    id: 'kakashi-reflect',
+    id: `${characterId}-reflect`,
     name: 'Sharingan Reflect',
     description: `Kakashi reflete as novas habilidades inimigas das classes ${formatSkillClasses(kakashiBalance.reflect.classes)} que o atingirem ${duration(kakashiBalance.reflect.turns)}, devolvendo seus efeitos ao atacante. Não remove efeitos anteriores. A proteção fica invisível para o adversário. Habilidades Control refletidas perdem a conexão e são canceladas.`,
     image: skill1Image,
@@ -34,12 +37,12 @@ export const kakashiSkills: SkillDefinition[] = [
     effects: [
       {
         type: 'apply-status',
-        statusId: 'kakashi-reflect'
+        statusId: `${characterId}-reflect`
       }
     ]
   },
   {
-    id: 'kakashi-dogs',
+    id: `${characterId}-dogs`,
     name: 'Summoning: Ninja Dogs',
     description: `Prende um inimigo e impede o uso das habilidades das classes ${formatSkillClasses(kakashiBalance.dogs.stunClasses)}. A prisão permanece ${duration(kakashiBalance.dogs.turns, "owner-turns", "Kakashi")}. Na jogada seguinte deste Kakashi, Raikiri mata esse alvo instantaneamente se os cães ainda estiverem ativos. Por ser Control, termina se Kakashi morrer ou ficar impedido de manter Ninja Dogs por stun, ou se o alvo ficar invulnerável. Imunidade a stun impede a prisão.`,
     image: skill2Image,
@@ -55,12 +58,12 @@ export const kakashiSkills: SkillDefinition[] = [
     effects: [
       {
         type: 'apply-status',
-        statusId: 'kakashi-dogs'
+        statusId: `${characterId}-dogs`
       }
     ]
   },
   {
-    id: 'kakashi-raikiri',
+    id: `${characterId}-raikiri`,
     name: 'Raikiri',
     description: `Causa ${n(kakashiBalance.raikiri.damage)} de dano piercing a um inimigo, ignorando redução de dano. Se o alvo ainda estiver preso pelo Ninja Dogs usado por este Kakashi na jogada anterior dele, mata o alvo instantaneamente. Não ignora invulnerabilidade.`,
     image: skill3Image,
@@ -79,7 +82,7 @@ export const kakashiSkills: SkillDefinition[] = [
         amount: kakashiBalance.raikiri.damage,
         damageType: 'piercing',
         executeIf: {
-          statusId: 'kakashi-dogs',
+          statusId: `${characterId}-dogs`,
           fromSourceOnly: true,
           previousUserTurn: true
         }
@@ -87,7 +90,7 @@ export const kakashiSkills: SkillDefinition[] = [
     ]
   },
   {
-    id: 'kakashi-hiding',
+    id: `${characterId}-hiding`,
     name: 'Clever Hiding',
     description: `Kakashi fica invulnerável às novas habilidades inimigas ${duration(kakashiBalance.hiding.turns)}. Não remove efeitos já aplicados.`,
     image: skill4Image,
@@ -100,7 +103,7 @@ export const kakashiSkills: SkillDefinition[] = [
     effects: [
       {
         type: 'apply-status',
-        statusId: 'kakashi-invulnerable'
+        statusId: `${characterId}-invulnerable`
       }
     ]
   }
@@ -109,7 +112,7 @@ export const kakashiSkills: SkillDefinition[] = [
 // Efeitos persistentes usados pelas habilidades acima.
 export const kakashiStatuses: StatusDefinition[] = [
   {
-    id: 'kakashi-reflect',
+    id: `${characterId}-reflect`,
     indicatorNote: 'Habilidades Control refletidas são canceladas. Não remove efeitos anteriores.',
     name: 'Sharingan Reflect',
     invisible: true,
@@ -125,7 +128,7 @@ export const kakashiStatuses: StatusDefinition[] = [
     ]
   },
   {
-    id: 'kakashi-dogs',
+    id: `${characterId}-dogs`,
     indicatorNote: 'Na próxima jogada do Kakashi que aplicou os cães, Raikiri pode executar este alvo.',
     name: 'Summoning: Ninja Dogs',
     control: true,
@@ -142,7 +145,7 @@ export const kakashiStatuses: StatusDefinition[] = [
     ]
   },
   {
-    id: 'kakashi-invulnerable',
+    id: `${characterId}-invulnerable`,
     indicatorNote: 'Não remove efeitos já aplicados.',
     name: 'Invulnerabilidade',
     duration: {
@@ -158,4 +161,12 @@ export const kakashiStatuses: StatusDefinition[] = [
 ]
 
 // Cadastro do personagem: retrato, descrição e habilidades.
-export const kakashi = characterWithSkills('kakashi', 'Hatake Kakashi', portrait, 'Líder do Time 7, conhecido como Copy Ninja, Kakashi coloca a vida de seus companheiros acima de tudo. É capaz de copiar técnicas inimigas e utiliza sua técnica original, Raikiri. No jogo de referência, é desbloqueado pela missão “Time 7 Luta como uma Equipe”.', kakashiSkills)
+export const kakashi = characterWithSkills(characterId, 'Hatake Kakashi', portrait, 'Líder do Time 7, conhecido como Copy Ninja, Kakashi coloca a vida de seus companheiros acima de tudo. É capaz de copiar técnicas inimigas e utiliza sua técnica original, Raikiri. No jogo de referência, é desbloqueado pela missão “Time 7 Luta como uma Equipe”.', kakashiSkills)
+
+
+// Registro automático: este bloco inclui o personagem e seus efeitos no jogo.
+export default defineCharacter({
+  character: kakashi,
+  statuses: kakashiStatuses,
+  order: 40,
+})

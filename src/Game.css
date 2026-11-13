@@ -186,6 +186,11 @@
   line-height: 1.4;
 }
 
+.game .description-body .character-unlock {
+  margin-top: 8px;
+  font-size: 11px;
+}
+
 .game .skill-facts {
   display: flex;
   justify-content: space-between;

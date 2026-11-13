@@ -1,9 +1,10 @@
+import { getSkillTargets, isSkillExpanded } from './targeting/index'
 import { getRemainingCooldown } from './cooldown'
 import { characters } from '../data/characters'
 import { paySkillCost } from './energy/index'
 import { statuses } from './effects'
-import { getActiveStatuses, hasActiveModifier, isStunnedForSkill } from './effects'
-import { getBattleSkills } from './skillCatalog'
+import { getActiveStatuses, isInvulnerableToSkill, isStunnedForSkill } from './effects'
+import { getBattleSkills, getEffectiveSkill } from './skillCatalog'
 import type {
   BattleCharacter,
   BattleState,
@@ -75,9 +76,10 @@ export function validateSkillUse(
   if (character.lastSkillUsedOnTurn === player.turnsStarted) return fail('already-acted')
   if (hasUnknownStatus(character)) return fail('unknown-status')
 
-  const skill = characters.find((definition) => definition.id === character.characterId)
+  const definition = characters.find((definition) => definition.id === character.characterId)
     ?.skillDefinitions?.find((definition) => definition.id === request.skillId)
-  if (!skill) return fail('skill-not-found')
+  if (!definition) return fail('skill-not-found')
+  const skill = getEffectiveSkill(state, character, definition)
   if (isStunnedForSkill(state, character, skill)) return fail('stunned')
   if (getRemainingCooldown(character.skillReadyOnTurn[skill.id], player.turnsStarted) > 0) {
     return fail('cooldown')
@@ -113,7 +115,9 @@ export function validateSkillUse(
     (skill.target === 'ally' && !alliedTarget)
   ) return fail('invalid-target')
   if (hasUnknownStatus(target)) return fail('unknown-status')
-  if (enemyTarget && hasActiveModifier(state, target, 'invulnerable') && !skill.allowInvulnerableTarget) return fail('target-invulnerable')
+  if (enemyTarget && isInvulnerableToSkill(state, target, skill) &&
+    (!skill.allowInvulnerableTarget || isSkillExpanded(state, character, skill))) return fail('target-invulnerable')
+  if (getSkillTargets(state, request.playerId, character, skill, target).some(hasUnknownStatus)) return fail('unknown-status')
 
   const energyAfterPayment = paySkillCost(player.energy, skill.cost, request.randomPayment)
   if (!energyAfterPayment) return fail('invalid-payment')

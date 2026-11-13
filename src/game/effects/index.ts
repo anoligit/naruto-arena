@@ -1,7 +1,7 @@
 export { statuses } from './catalog'
 export { applySkillEffect } from './apply'
 export { settleTurnDamage, triggerSkillUseDamage } from './damage'
-export { getActiveStatuses, getActiveModifiers, hasActiveModifier, isStunnedForSkill } from './active'
+export { getActiveStatuses, getActiveModifiers, hasActiveModifier, isStunnedForSkill, isInvulnerableToSkill } from './active'
 export { getSkillReflection } from './reflection'
 export { hasStatusExpired } from './duration'
 export type { ActiveStatus, SkillEffect, StatusModifier, StatusDefinition, DamageType, DamageEvent, DamageResult, EffectError, EffectContext } from './types'

@@ -9,6 +9,8 @@ export function describeStatusEffect(definition: StatusDefinition, skills: reado
   const skillName = (id: string) => skills.find((skill) => skill.id === id)?.name ?? id
   const describe = (modifier: StatusModifier): string => {
     switch (modifier.type) {
+      case 'enemy-skill-cost-increase':
+        return `As habilidades inimigas das classes ${formatSkillClasses(modifier.classes)} custam ${number(modifier.random)} energia aleatória adicional por uso.`
       case 'damage-reduction':
         return `Reduz o dano normal recebido em ${number(modifier.amount)} pontos. Não reduz piercing ou affliction.`
       case 'damage-reduction-percent':
@@ -22,7 +24,9 @@ export function describeStatusEffect(definition: StatusDefinition, skills: reado
       case 'stun-immunity':
         return 'Fica imune a stun.'
       case 'invulnerable':
-        return 'Fica invulnerável a novas habilidades inimigas que respeitem invulnerabilidade.'
+        return modifier.classes
+          ? `Fica invulnerável a novas habilidades inimigas das classes: ${formatSkillClasses(modifier.classes)}.`
+          : 'Fica invulnerável a novas habilidades inimigas que respeitem invulnerabilidade.'
       case 'reflect':
         return `Devolve ao atacante as novas habilidades inimigas das classes: ${formatSkillClasses(modifier.classes)}.`
       case 'damage-taken-multiplier':
@@ -41,7 +45,7 @@ export function describeStatusEffect(definition: StatusDefinition, skills: reado
   const lines = definition.modifiers.map(describe)
   if (definition.indicatorNote) lines.push(definition.indicatorNote)
   if (definition.endsWhenSourceDies) lines.push('Termina se quem aplicou este efeito morrer.')
-  if (definition.control) lines.push('Termina se o usuário ficar stunado nas classes desta habilidade ou se o alvo ficar invulnerável.')
+  if (definition.control) lines.push('Termina se o usuário ficar stunado nas classes desta habilidade ou se o alvo ficar invulnerável a esta habilidade.')
   return lines
 }
 

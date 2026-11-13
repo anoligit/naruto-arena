@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { MouseEvent } from 'react'
-import type { Character } from './data/characters'
-import { loadTeam, saveTeam, TEAM_KEY } from './teamStorage'
+import { useTeam } from './useTeam'
 import StartPlaying from './pages/StartPlaying'
 import './App.css'
 
@@ -13,7 +12,7 @@ const readPage = (): Page => {
 }
 
 function App() {
-  const [team, setTeam] = useState<(Character | null)[]>(loadTeam)
+  const [team, setTeam] = useTeam()
   const [page, setPage] = useState<Page>(readPage)
   const [popupError, setPopupError] = useState('')
 
@@ -33,20 +32,6 @@ function App() {
     setPopupError('')
     popup.focus()
   }
-
-  useEffect(() => {
-    saveTeam(team)
-  }, [team])
-
-  useEffect(() => {
-    function handleStorage(event: StorageEvent) {
-      if (event.storageArea !== window.localStorage) return
-      if (event.key !== TEAM_KEY && event.key !== null) return
-      setTeam(loadTeam())
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)   
-}, [])
 
   useEffect(() => {
     const handleNavigation = () => setPage(readPage())

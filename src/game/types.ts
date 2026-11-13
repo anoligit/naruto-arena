@@ -1,4 +1,4 @@
-import type { ActiveStatus, SkillEffect } from './effects/types'
+import type { ActiveStatus, SkillEffect, DamageType } from './effects/types'
 export type { ActiveStatus, SkillEffect, StatusModifier, StatusDefinition } from './effects/types'
 import type { SkillClass } from './classes/types'
 export type { SkillClass } from './classes/types'
@@ -16,6 +16,15 @@ export type SkillDefinition = {
   cost: EnergyCost
   cooldown: number
   target: SkillTarget
+  targetExpansion?: {
+    whenUserHasStatus?: string
+    target: 'all-vulnerable-enemies'
+  }
+  enhancement?: {
+    whenUserHasStatus: string
+    damage?: { amount: number; damageType: DamageType }
+    ignoreInvulnerability?: boolean
+  }
   classes: SkillClass[]
   requirements?: SkillCondition[]
   effects: SkillEffect[]

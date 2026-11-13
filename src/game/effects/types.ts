@@ -22,6 +22,7 @@ export type SkillEffect =
     }
 
 export type StatusModifier =
+  | { type: 'enemy-skill-cost-increase'; classes: SkillClass[]; random: number }
   | { type: 'reflect'; classes: SkillClass[] }
   | {
       type: 'damage-reduction'
@@ -38,6 +39,7 @@ export type StatusModifier =
     }
   | {
       type: 'invulnerable'
+      classes?: SkillClass[]
     }
   | { type: 'damage-reduction-percent'; percent: number }
   | { type: 'stun-immunity' }
@@ -86,5 +88,6 @@ export type DamageResult = { targetInstanceId: string; damage: number; healthBef
 export type EffectError = 'unknown-status-definition' | 'invalid-effect-definition'
 export type EffectContext = {
   state: BattleState; playerId: PlayerId; source: BattleCharacter; target: BattleCharacter
+  applicationId?: string
   skill: SkillDefinition; effectIndex: number; damageEvents: DamageEvent[]
 }

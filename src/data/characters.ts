@@ -1,9 +1,3 @@
-import { naruto } from '../characters/naruto'
-import { sasuke } from '../characters/sasuke'
-import { sakura } from '../characters/sakura'
-import { kakashi } from '../characters/kakashi'
-import type { Character } from '../characters/definition'
-
+// A lista vem automaticamente das pastas em src/characters.
+export { characters } from '../characters/registry'
 export type { Character } from '../characters/definition'
-
-export const characters: Character[] = [naruto, sasuke, sakura, kakashi]

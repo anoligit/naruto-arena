@@ -45,6 +45,9 @@ export default function CharacterDetailsPanel({ character, selectedSkill, onSkil
           </header>
           <div className="description-body" tabIndex={0} aria-label="Descrição completa">
             <p>{description}</p>
+            {!selectedSkill && character.unlockRequirement && <p className="character-unlock">
+              <strong>Requisito para desbloquear:</strong> {character.unlockRequirement.type === 'none' ? 'Nenhum' : character.unlockRequirement.name}
+            </p>}
             {skill && character.skillDefinitions?.filter((candidate) => candidate.replacement?.skillId === skill.id).map((candidate) =>
               <button key={candidate.id} className="alternative-skill-link" onClick={() => onSkillChange(candidate.name)}>
                 Consultar habilidade alternativa: {candidate.name}

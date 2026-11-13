@@ -1,8 +1,10 @@
+import { getSkillTargets } from './targeting/index'
+import { getEffectiveSkill } from './skillCatalog'
 import { characters } from '../data/characters'
 import { createEmptyEnergyPool, paySkillCost, energyTotal, energyDisplayOrder as energyTypes } from './energy/index'
 import { validateSkillUse } from './validateSkillUse'
 import type { SkillUseRequest, SkillUseValidation } from './validateSkillUse'
-import type { BattleState, EnergyPool } from './types'
+import type { BattleCharacter, BattleState, EnergyPool } from './types'
 
 export type PlannedAction = Omit<SkillUseRequest, 'randomPayment'>
 // Reexportações mantidas para os consumidores existentes.
@@ -10,7 +12,16 @@ export { energyTotal, energyDisplayOrder as energyTypes } from './energy/index'
 
 export function skillForAction(battle: BattleState, action: PlannedAction) {
   const member = battle.players[action.playerId].team.find((entry) => entry.instanceId === action.characterInstanceId)
-  return characters.find((entry) => entry.id === member?.characterId)?.skillDefinitions?.find((entry) => entry.id === action.skillId)
+  const skill = characters.find((entry) => entry.id === member?.characterId)?.skillDefinitions?.find((entry) => entry.id === action.skillId)
+  return member && skill ? getEffectiveSkill(battle, member, skill) : undefined
+}
+
+// Os indicadores mostram cada alvo de uma ação em área, sem duplicar a ação.
+export function getPlannedTargets(battle: BattleState, action: PlannedAction): BattleCharacter[] {
+  const source = battle.players[action.playerId].team.find((member) => member.instanceId === action.characterInstanceId)
+  const skill = skillForAction(battle, action)
+  const target = Object.values(battle.players).flatMap((owner) => owner.team).find((member) => member.instanceId === action.targetInstanceId)
+  return source && skill && target ? getSkillTargets(battle, action.playerId, source, skill, target) : []
 }
 
 export type QueueBudget = {

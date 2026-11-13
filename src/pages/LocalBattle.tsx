@@ -11,7 +11,7 @@ import { statuses, getActiveStatuses, describeStatusEffect, formatStatusDuration
 import { getRemainingTurnSeconds } from '../game/turnTimer'
 import { appendAction, applyExchange, confirmSession, createLocalSession, tickSession } from '../game/localBattleSession'
 import type { BattleMode, LocalBattleSession } from '../game/localBattleSession'
-import { getQueueBudget, skillForAction } from '../game/plannedActions'
+import { getQueueBudget, skillForAction, getPlannedTargets } from '../game/plannedActions'
 import type { PlannedAction } from '../game/plannedActions'
 import { getBattleSkillNames } from '../game/skillCatalog'
 import { getSkillAvailability } from '../game/skillAvailability'
@@ -145,7 +145,7 @@ function CharacterIndicators({ battle, queue, member, inspect }: {
           onConsult={() => inspect(source?.instanceId ?? member.instanceId, skill?.name ?? null)}
         />
       })}
-    {queue.filter((action) => action.targetInstanceId === member.instanceId).map((action) => {
+    {queue.filter((action) => getPlannedTargets(battle, action).some((target) => target.instanceId === member.instanceId)).map((action) => {
       const skill = skillForAction(battle, action)
       return <EffectIndicator
         key={action.characterInstanceId}

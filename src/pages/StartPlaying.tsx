@@ -163,6 +163,8 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
             return (
               <button
                 key={character.id}
+                title={character.name}
+                aria-label={character.name}
                 className={`character ${isInTeam ? 'in-team' : ''}`}
                 aria-pressed={selectedCharacter?.id === character.id}
                 draggable={!isInTeam}

@@ -1,3 +1,4 @@
+import { isInvulnerableByModifiers } from './protection'
 import { characters } from '../../data/characters'
 import { statuses } from './catalog'
 import { isStunnedByModifiers } from './stun'
@@ -14,7 +15,8 @@ export function getActiveStatuses(state: BattleState, character: BattleCharacter
       const modifiers = source.statuses.flatMap((entry) => statuses.find((status) => status.id === entry.statusId)?.modifiers ?? [])
       const skill = characters.find((entry) => entry.id === source.characterId)?.skillDefinitions?.find((entry) => entry.id === active.sourceSkillId)
       const stunned = isStunnedByModifiers(modifiers, skill)
-      const invulnerable = character.statuses.some((entry) => statuses.find((status) => status.id === entry.statusId)?.modifiers.some((modifier) => modifier.type === 'invulnerable'))
+      const targetModifiers = character.statuses.flatMap((entry) => statuses.find((status) => status.id === entry.statusId)?.modifiers ?? [])
+      const invulnerable = isInvulnerableByModifiers(targetModifiers, skill)
       if (stunned || invulnerable) return false
     }
     return true
@@ -31,4 +33,8 @@ export function hasActiveModifier(state: BattleState, character: BattleCharacter
 
 export function isStunnedForSkill(state: BattleState, character: BattleCharacter, skill: SkillDefinition): boolean {
   return isStunnedByModifiers(getActiveModifiers(state, character), skill)
+}
+
+export function isInvulnerableToSkill(state: BattleState, character: BattleCharacter, skill: SkillDefinition): boolean {
+  return isInvulnerableByModifiers(getActiveModifiers(state, character), skill)
 }
