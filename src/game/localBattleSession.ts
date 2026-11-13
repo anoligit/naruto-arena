@@ -1,4 +1,4 @@
-import { createEmptyChakraPool, exchangeChakra, paySkillCost } from './chakra'
+import { createEmptyChakraPool, exchangeChakra, paySkillCost, chakraRules } from './chakra/index'
 import { resolveTurn } from './resolveTurn'
 import { expireTurn } from './turnTimer'
 import { buildConfirmedActions, getQueueBudget, validatePlannedAction } from './plannedActions'
@@ -27,7 +27,7 @@ export function applyExchange(
 ): BattleState | null {
   if (battle.phase !== 'planning' || battle.turnEndsAt === null || now >= battle.turnEndsAt) return null
   const budget = getQueueBudget(battle, queue)
-  if (!budget || !paySkillCost(budget.afterSpecific, { random: 5 }, sacrificed)) return null
+  if (!budget || !paySkillCost(budget.afterSpecific, { random: chakraRules.exchangeCost }, sacrificed)) return null
   const player = battle.players[battle.activePlayerId]
   const chakra = exchangeChakra(player.chakra, sacrificed, chosenType)
   if (!chakra) return null

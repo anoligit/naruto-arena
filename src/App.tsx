@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { MouseEvent } from 'react'
 import type { Character } from './data/characters'
 import { loadTeam, saveTeam, TEAM_KEY } from './teamStorage'
 import StartPlaying from './pages/StartPlaying'
@@ -14,6 +15,24 @@ const readPage = (): Page => {
 function App() {
   const [team, setTeam] = useState<(Character | null)[]>(loadTeam)
   const [page, setPage] = useState<Page>(readPage)
+  const [popupError, setPopupError] = useState('')
+
+  function openGame(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault()
+    const url = new URL(window.location.href)
+    url.hash = 'game'
+    const popup = window.open(
+      url.href,
+      'narutoArenaGame',
+      'popup=yes,width=1220,height=890,resizable=yes,scrollbars=yes'
+    )
+    if (!popup) {
+      setPopupError('O navegador bloqueou a janela do jogo. Permita popups para este site e tente novamente.')
+      return
+    }
+    setPopupError('')
+    popup.focus()
+  }
 
   useEffect(() => {
     saveTeam(team)
@@ -45,20 +64,7 @@ function App() {
       <aside className="left-column" aria-label="Navigation and account">
         <nav className="main-menu" aria-label="Main navigation">
           <a href="#startpage" aria-current={page === 'startpage' ? 'page' : undefined}>Startpage</a>
-          <a 
-            href="#game" 
-            onClick={(event) => {
-              event.preventDefault()
-             
-              window.open(
-                '#game',
-                'narutoArenaGame',
-                'popup=yes,width=1220,height=890,resizable=yes,scrollbars=yes'
-              )
-              }}
-              >
-              Start Playing
-              </a>
+          <a href="#game" onClick={openGame}>Start Playing</a>
 
           {['Game Manual', 'Ladders', 'Ninja Missions'].map((label) => <button key={label} disabled title="Coming in a future update">{label}<small>Coming soon</small></button>)}
         </nav>
@@ -93,9 +99,12 @@ function App() {
             <article className="news-post"><p className="eyebrow">Project news · Stage 01</p><h2>A new home for your team</h2><p>The first stage of the website is here: a classic three-column layout with shared navigation and a dedicated character selection page.</p><p>Open Start Playing to explore the ninjas and choose your team. You can return here without losing your selection while the site stays open.</p><h3>What is available?</h3><ul><li>Character details and skills.</li><li>A team of three different ninjas.</li><li>Double-click and drag-and-drop selection.</li></ul><p className="development-note">In development: accounts, missions, rankings and battles. Your team is saved in this browser when local storage is available.</p></article>
           </section>
           <section hidden={page !== 'start-playing'} aria-labelledby="playing-title" className="playing-page">
-            <h1 id="playing-title">Start Playing</h1><p className="tagline">Select your team</p>
-            <StartPlaying team={team} setTeam={setTeam} />
+            <h1 id="playing-title">Start Playing</h1>
+            <p className="tagline">O jogo abre em uma janela própria.</p>
+            <p>Abra o jogo para escolher seu time, consultar habilidades e entrar em uma batalha local.</p>
+            <a className="play-link" href="#game" onClick={openGame}>Abrir jogo em nova janela</a>
           </section>
+          {popupError && <p role="alert">{popupError}</p>}
         </main>
         <footer>Fan project · In development</footer>
       </div>

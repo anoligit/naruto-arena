@@ -1,7 +1,8 @@
+import { getRemainingCooldown } from './cooldown'
 import { characters } from '../data/characters'
-import { paySkillCost } from './chakra'
-import { statuses } from './statuses'
-import { getActiveStatuses, hasActiveModifier, isStunnedForSkill } from './statusRules'
+import { paySkillCost } from './chakra/index'
+import { statuses } from './effects'
+import { getActiveStatuses, hasActiveModifier, isStunnedForSkill } from './effects'
 import { getBattleSkills } from './skillCatalog'
 import type {
   BattleCharacter,
@@ -78,7 +79,7 @@ export function validateSkillUse(
     ?.skillDefinitions?.find((definition) => definition.id === request.skillId)
   if (!skill) return fail('skill-not-found')
   if (isStunnedForSkill(state, character, skill)) return fail('stunned')
-  if (player.turnsStarted < (character.skillReadyOnTurn[skill.id] ?? 0)) {
+  if (getRemainingCooldown(character.skillReadyOnTurn[skill.id], player.turnsStarted) > 0) {
     return fail('cooldown')
   }
 

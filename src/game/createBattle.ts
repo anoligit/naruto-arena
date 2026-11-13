@@ -1,7 +1,7 @@
 import { getCompleteTeam } from './teamRules'
 import { TURN_DURATION_MS } from './rules'
 import type { Character } from '../data/characters'
-import { createEmptyChakraPool, receiveTurnChakra } from './chakra'
+import { createEmptyChakraPool, receiveTurnChakra } from './chakra/index'
 import type {
   BattleCharacter,
   BattlePlayer,

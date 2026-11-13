@@ -1,29 +1,12 @@
-export type ChakraType =
-  | 'bloodline'
-  | 'ninjutsu'
-  | 'taijutsu'
-  | 'genjutsu'
+import type { ActiveStatus, SkillEffect } from './effects/types'
+export type { ActiveStatus, SkillEffect, StatusModifier, StatusDefinition } from './effects/types'
+import type { SkillClass } from './classes/types'
+export type { SkillClass } from './classes/types'
+import type { ChakraCost, ChakraPool } from './chakra/types'
 
-export type ChakraPool = Record<ChakraType, number>
-
-export type ChakraCost = {
-  specific?: Partial<ChakraPool>
-  random?: number
-}
+export type { ChakraType, ChakraPool, ChakraCost } from './chakra/types'
 
 export type SkillTarget = 'self' | 'enemy' | 'ally'
-
-export type SkillClass =
-  | 'physical'
-  | 'chakra'
-  | 'affliction'
-  | 'mental'
-  | 'melee'
-  | 'ranged'
-  | 'instant'
-  | 'action'
-  | 'control'
-  | 'unique'
 
 export type SkillDefinition = {
   id: string
@@ -44,76 +27,7 @@ export type SkillCondition = {
   statusId: string
 }
 
-export type SkillEffect =
-  | {
-      type: 'damage'
-      amount: number
-      damageType: 'normal' | 'piercing' | 'affliction'
-      executeIf?: { statusId: string; fromSourceOnly?: boolean; previousUserTurn?: boolean }
-    }
-  | {
-      type: 'apply-status'
-      statusId: string
-      recipient?: 'user' | 'target'
-      skipIfUntargetable?: boolean
-    }
-  | {
-      type: 'heal'
-      amount: number
-    }
-
-export type StatusModifier =
-  | { type: 'reflect'; classes: SkillClass[] }
-  | {
-      type: 'damage-reduction'
-      amount: number
-    }
-  | {
-      type: 'damage-multiplier'
-      skillId: string
-      multiplier: number
-    }
-  | {
-      type: 'stun'
-      classes?: SkillClass[]
-    }
-  | {
-      type: 'invulnerable'
-    }
-  | { type: 'damage-reduction-percent'; percent: number }
-  | { type: 'stun-immunity' }
-  | { type: 'damage-taken-multiplier'; skillId: string; multiplier: number; fromSourceOnly?: boolean }
-  | { type: 'damage-taken-bonus'; skillId: string; amount: number; fromSourceOnly?: boolean }
-  | { type: 'on-skill-use-damage'; amount: number; damageType: 'normal' | 'piercing' | 'affliction' }
-
-export type StatusDefinition = {
-  id: string
-  name: string
-  duration: {
-    type: 'opponent-turns' | 'owner-turns'
-    turns: number
-  }
-  modifiers: StatusModifier[]
-  endsWhenSourceDies?: boolean
-  invisible?: boolean
-  control?: boolean
-}
-
-
 export type PlayerId = 'player-1' | 'player-2'
-
-export type ActiveStatus = {
-  instanceId: string
-  statusId: string
-  sourcePlayerId: PlayerId
-  sourceCharacterId: string
-  sourceSkillId?: string
-  appliedOnUserTurn?: number
-  expiration: {
-    playerId: PlayerId
-    afterTurn: number
-  }
-}
 
 export type BattleCharacter = {
   instanceId: string

@@ -1,12 +1,12 @@
 import { characters } from '../data/characters'
-import { createEmptyChakraPool, paySkillCost } from './chakra'
+import { createEmptyChakraPool, paySkillCost, chakraTotal, chakraDisplayOrder as chakraTypes } from './chakra/index'
 import { validateSkillUse } from './validateSkillUse'
 import type { SkillUseRequest, SkillUseValidation } from './validateSkillUse'
-import type { BattleState, ChakraPool, ChakraType } from './types'
+import type { BattleState, ChakraPool } from './types'
 
 export type PlannedAction = Omit<SkillUseRequest, 'randomPayment'>
-export const chakraTypes: ChakraType[] = ['taijutsu', 'bloodline', 'ninjutsu', 'genjutsu']
-export const chakraTotal = (pool: ChakraPool) => Object.values(pool).reduce((sum, amount) => sum + amount, 0)
+// Reexportações mantidas para os consumidores existentes.
+export { chakraTotal, chakraDisplayOrder as chakraTypes } from './chakra/index'
 
 export function skillForAction(battle: BattleState, action: PlannedAction) {
   const member = battle.players[action.playerId].team.find((entry) => entry.instanceId === action.characterInstanceId)

@@ -1,3 +1,4 @@
+import { getDisplayedCooldown } from './cooldown'
 import { characters } from '../data/characters'
 import { validatePlannedAction } from './plannedActions'
 import type { SkillUseError } from './validateSkillUse'
@@ -23,7 +24,7 @@ export function getSkillAvailability(
 ): SkillAvailability {
   const player = battle.players[ownerId]
   const source = player.team.find((member) => member.instanceId === sourceInstanceId)
-  const cooldown = Math.max(0, (source?.skillReadyOnTurn[skillId] ?? 0) - (player.turnsStarted + (ownerId === battle.activePlayerId ? 0 : 1)))
+  const cooldown = getDisplayedCooldown(source?.skillReadyOnTurn[skillId], player.turnsStarted, ownerId === battle.activePlayerId)
   const blocked = (reason: AvailabilityReason): SkillAvailability => ({ usable: false, reason, cooldown, targetInstanceIds: [] })
   if (battle.phase === 'finished') return blocked('battle-finished')
   if (ownerId !== battle.activePlayerId) return blocked('not-your-turn')

@@ -1,3 +1,7 @@
+import { formatCooldown } from '../game/cooldown'
+import SkillClasses from '../components/SkillClasses'
+import { formatChakraCost } from '../game/chakra/index'
+import { imageUrl } from '../utils/imageUrl'
 
 import { useState } from 'react'
 import type { Dispatch, SetStateAction, DragEvent } from 'react'
@@ -26,16 +30,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
   (skill) => skill.name === selectedSkill
 )
 
-const chakraCost = skillDetails
-  ? [
-      ...Object.entries(skillDetails.cost.specific ?? {}).map(
-        ([type, amount]) => `${amount} ${type}`
-      ),
-      ...(skillDetails.cost.random
-        ? [`${skillDetails.cost.random} qualquer`]
-        : []),
-    ].join(' + ') || 'Sem custo'
-  : ''
+  const chakraCost = skillDetails ? formatChakraCost(skillDetails.cost) : ''
 
   function addToTeam(character: Character) {
     setTeam((currentTeam) => {
@@ -168,7 +163,7 @@ const chakraCost = skillDetails
         >
           {selectedCharacter.image ? (
             <img
-              src={`${import.meta.env.BASE_URL}${selectedCharacter.image}`}
+              src={imageUrl(selectedCharacter.image)}
               alt={selectedCharacter.name}
               className="character-portrait"
               draggable={false}
@@ -192,7 +187,7 @@ const chakraCost = skillDetails
             >
               {selectedCharacter.skillImages?.[skill] ? (
                 <img
-                  src={`${import.meta.env.BASE_URL}${selectedCharacter.skillImages[skill]}`}
+                  src={imageUrl(selectedCharacter.skillImages[skill])}
                   alt={skill}
                   draggable={false}
                 />
@@ -209,7 +204,7 @@ const chakraCost = skillDetails
           <div className="description-image-slot">
             {selectedCharacter.skillImages?.[selectedSkill] ? (
               <img
-                src={`${import.meta.env.BASE_URL}${selectedCharacter.skillImages[selectedSkill]}`}
+                src={imageUrl(selectedCharacter.skillImages[selectedSkill])}
                 alt={selectedSkill}
                 width={120}
                 height={120}
@@ -240,17 +235,13 @@ const chakraCost = skillDetails
     <div>
       <dt>Recarga</dt>
       <dd>
-        {skillDetails.cooldown === 0
-          ? 'Nenhuma'
-          : `${skillDetails.cooldown} ${
-              skillDetails.cooldown === 1 ? 'turno' : 'turnos'
-            }`}
+        {formatCooldown(skillDetails.cooldown)}
       </dd>
     </div>
 
     <div>
       <dt>Classes</dt>
-      <dd>{skillDetails.classes.join(', ')}</dd>
+      <dd><SkillClasses classes={skillDetails.classes} /></dd>
     </div>
   </dl>
 )}
@@ -314,7 +305,7 @@ onDoubleClick={() => {
               >
                 {character.image ? (
                   <img
-                    src={`${import.meta.env.BASE_URL}${character.image}`}
+                    src={imageUrl(character.image)}
                     alt={character.name}
                     width={48}
                     height={48}
@@ -385,7 +376,7 @@ onDoubleClick={() => {
                   >
                     {member.image ? (
                       <img
-                        src={`${import.meta.env.BASE_URL}${member.image}`}
+                        src={imageUrl(member.image)}
                         alt={member.name}
                         width={75}
                         height={75}

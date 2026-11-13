@@ -1,3 +1,7 @@
+import { formatCooldown } from '../game/cooldown'
+import SkillClasses from '../components/SkillClasses'
+import { formatChakraCost } from '../game/chakra/index'
+import { imageUrl } from '../utils/imageUrl'
 import { characters } from '../data/characters'
 import type { BattleState } from '../game/types'
 
@@ -18,22 +22,19 @@ export default function BattleInspectionPanel({ battle, inspection, onCharacter,
   const description = skillName
     ? skill?.description ?? definition?.skillDescriptions?.[skillName] ?? 'Regras desta habilidade ainda não cadastradas.'
     : definition?.description ?? 'Descrição deste personagem ainda não cadastrada.'
-  const costs = skill ? [
-    ...Object.entries(skill.cost.specific ?? {}).map(([type, amount]) => `${amount} ${type}`),
-    ...(skill.cost.random ? [`${skill.cost.random} qualquer`] : []),
-  ].join(' + ') || 'Sem custo' : ''
+  const costs = skill ? formatChakraCost(skill.cost) : ''
 
   return <section className="battle-inspection" aria-label="Consulta de personagens e habilidades">
     {member && definition ? <>
-      <div className="inspection-image">{image ? <img src={`${import.meta.env.BASE_URL}${image}`} alt={skillName ?? definition.name} draggable={false} onError={(event) => { event.currentTarget.hidden = true }} /> : <span>{skillName ?? definition.name}</span>}</div>
+      <div className="inspection-image">{image ? <img src={imageUrl(image)} alt={skillName ?? definition.name} draggable={false} onError={(event) => { event.currentTarget.hidden = true }} /> : <span>{skillName ?? definition.name}</span>}</div>
       <div className="inspection-copy">
         <small>Consulta · {definition.name}</small>
         <h2>{skillName ?? definition.name}</h2>
         <p>{description}</p>
         {skill && <dl><div><dt>Chakra</dt><dd>{costs}</dd></div>
-          <div><dt>Recarga</dt><dd>{skill.cooldown === 0 ? 'Sem recarga' : `${skill.cooldown} ${skill.cooldown === 1 ? 'turno do usuário' : 'turnos do usuário'} após o uso`}</dd></div>
+          <div><dt>Recarga</dt><dd>{formatCooldown(skill.cooldown, 'full')}</dd></div>
           <div><dt>Alvo</dt><dd>{skill.target === 'self' ? 'O próprio usuário' : skill.target === 'enemy' ? 'Um inimigo vivo que possa receber esta habilidade' : 'Um aliado vivo que possa receber esta habilidade'}</dd></div>
-          <div><dt>Classes</dt><dd>{skill.classes.join(', ')}</dd></div></dl>}
+          <div><dt>Classes</dt><dd><SkillClasses classes={skill.classes} /></dd></div></dl>}
         {skill && onSkill && definition.skillDefinitions?.filter((candidate) => candidate.replacement?.skillId === skill.id).map((candidate) =>
           <button key={candidate.id} onClick={() => onSkill(member.instanceId, candidate.name)}>Consultar habilidade alternativa: {candidate.name}</button>
         )}

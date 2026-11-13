@@ -1,8 +1,9 @@
+import { isValidCooldown, getCooldownReadyTurn } from './cooldown'
 import { advanceTurn } from './advanceTurn'
 import { expireTurn } from './turnTimer'
-import { getActiveModifiers, getActiveStatuses, hasActiveModifier } from './statusRules'
-import { applySkillEffect, settleTurnDamage, triggerSkillUseDamage } from './skillEffects'
-import type { DamageEvent, DamageResult, EffectError } from './skillEffects'
+import { getActiveStatuses, getSkillReflection } from './effects'
+import { applySkillEffect, settleTurnDamage, triggerSkillUseDamage } from './effects'
+import type { DamageEvent, DamageResult, EffectError } from './effects'
 import { validateSkillUse } from './validateSkillUse'
 import type { SkillUseError, SkillUseRequest } from './validateSkillUse'
 import type { BattleState } from './types'
@@ -50,7 +51,7 @@ export function resolveTurn(
       return { ok: false, state, reason: validation.reason, actionIndex }
     }
     const skill = validation.skill
-    if (!Number.isInteger(skill.cooldown) || skill.cooldown < 0) {
+    if (!isValidCooldown(skill.cooldown)) {
       return { ok: false, state, reason: 'invalid-effect-definition', actionIndex }
     }
 
@@ -64,12 +65,9 @@ export function resolveTurn(
     const activeBefore = getActiveStatuses(working, source)
     player.chakra = validation.chakraAfterPayment
     source.lastSkillUsedOnTurn = player.turnsStarted
-    source.skillReadyOnTurn[skill.id] = player.turnsStarted + skill.cooldown + 1
+    source.skillReadyOnTurn[skill.id] = getCooldownReadyTurn(player.turnsStarted, skill.cooldown)
 
-    const reflected = skill.target === 'enemy' && getActiveModifiers(working, target).some((modifier) =>
-      modifier.type === 'reflect' && modifier.classes.some((name) => skill.classes.includes(name)))
-    // A reflected skill cannot reflect again. Control loses its connection.
-    const blockedReflection = reflected && (skill.classes.includes('control') || hasActiveModifier(working, source, 'invulnerable'))
+    const { reflected, blockedReflection } = getSkillReflection(working, source, target, skill)
     for (const [effectIndex, effect] of (blockedReflection ? [] : skill.effects).entries()) {
       const error = applySkillEffect(effect, {
         state: working,

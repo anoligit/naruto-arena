@@ -1,0 +1,42 @@
+/* Descrição flutuante: não ocupa espaço nem desloca a batalha. */
+.effect-tooltip {
+  position: fixed;
+  z-index: 50;
+  box-sizing: border-box;
+  width: 350px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  padding: 8px 10px;
+  border: 1px solid #111;
+  background: #f4e9c7;
+  color: #111;
+  font: 12px/1.4 Arial, Helvetica, sans-serif;
+  text-align: left;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  pointer-events: none;
+}
+
+.effect-tooltip strong,
+.effect-tooltip em {
+  display: block;
+  color: #b32327;
+  font-weight: bold;
+}
+
+.effect-tooltip strong {
+  font-size: 13px;
+}
+
+.effect-tooltip ul {
+  margin: 5px 0;
+  padding-left: 15px;
+}
+
+.effect-tooltip li + li {
+  margin-top: 3px;
+}
+
+.effect-tooltip em {
+  font-style: normal;
+}

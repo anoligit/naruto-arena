@@ -1,12 +1,16 @@
+import EffectIndicator from '../components/EffectIndicator'
+import { formatRemainingCooldown } from '../game/cooldown'
+import ChakraToken from '../components/ChakraToken'
+import { imageUrl } from '../utils/imageUrl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { characters } from '../data/characters'
-import { createEmptyChakraPool } from '../game/chakra'
-import { statuses } from '../game/statuses'
+import { createEmptyChakraPool, chakraTotal, chakraDisplayOrder as chakraTypes, chakraDefinitions, chakraRules } from '../game/chakra/index'
+import { statuses, getActiveStatuses, describeStatusEffect, formatStatusDuration, isStatusVisible } from '../game/effects'
 import { getRemainingTurnSeconds } from '../game/turnTimer'
 import { appendAction, applyExchange, confirmSession, createLocalSession, tickSession } from '../game/localBattleSession'
 import type { BattleMode, LocalBattleSession } from '../game/localBattleSession'
-import { chakraTotal, chakraTypes, getQueueBudget, skillForAction } from '../game/plannedActions'
+import { getQueueBudget, skillForAction } from '../game/plannedActions'
 import type { PlannedAction } from '../game/plannedActions'
 import { getBattleSkillNames } from '../game/skillCatalog'
 import { getSkillAvailability } from '../game/skillAvailability'
@@ -32,7 +36,7 @@ const errors: Record<string, string> = {
   'choose-random-chakra': 'Escolha exatamente a quantidade indicada de chakra qualquer.',
 }
 function availabilityText(reason: string | null, cooldown: number) {
-  return reason === 'cooldown' ? `Recarga: ${cooldown} turno(s). Consulta disponível.` : reason ? errors[reason] ?? reason : 'Clique num retrato dourado para atribuir a habilidade.'
+  return reason === 'cooldown' ? formatRemainingCooldown(cooldown) : reason ? errors[reason] ?? reason : 'Clique num retrato dourado para atribuir a habilidade.'
 }
 function dialogKeys(event: KeyboardEvent<HTMLElement>, cancel?: () => void) {
   if (event.key === 'Escape') { cancel?.(); return }
@@ -50,11 +54,11 @@ function Portrait({ member }: { member: BattleCharacter }) {
   const definition = definitionOf(member)
   const [failed, setFailed] = useState(false)
   return <>{definition?.image && !failed
-    ? <img src={`${import.meta.env.BASE_URL}${definition.image}`} alt="" draggable={false} onError={() => setFailed(true)} />
+    ? <img src={imageUrl(definition.image)} alt="" draggable={false} onError={() => setFailed(true)} />
     : <span className="portrait-placeholder" aria-hidden="true">?</span>}</>
 }
 function SkillImage({ image, name }: { image?: string; name: string }) {
-  return image ? <img src={`${import.meta.env.BASE_URL}${image}`} alt="" draggable={false} /> : <span>{name}</span>
+  return image ? <img src={imageUrl(image)} alt="" draggable={false} /> : <span>{name}</span>
 }
 function SkillButton({ battle, queue, member, ownerId, skillName, inspection, pending, now, onChoose }: {
   battle: BattleState; queue: PlannedAction[]; member: BattleCharacter; ownerId: PlayerId; skillName: string
@@ -83,12 +87,12 @@ function AllocationPicker({ available, value, required, onChange }: {
   return <div className="allocation-picker" role="group" aria-label="Escolha dos tipos de chakra">
     <div className="allocation-head"><span>CHAKRA LEFT:</span><span>RANDOM CHAKRA:</span></div>
     {chakraTypes.map((type) => <div className="allocation-row" key={type}>
-      <span className="allocation-label"><i className={`chakra-token ${type}`} aria-hidden="true" />{type}</span>
-      <output aria-label={`${type} restante`}>{available[type] - value[type]}</output>
-      <button aria-label={`Retirar ${type}`} disabled={value[type] === 0} onClick={() => onChange({ ...value, [type]: value[type] - 1 })}>−</button>
-      <button aria-label={`Escolher ${type}`} disabled={chosen >= required || value[type] >= available[type]} onClick={() => onChange({ ...value, [type]: value[type] + 1 })}>+</button>
-      <span className="allocation-label"><i className={`chakra-token ${type}`} aria-hidden="true" />{type}</span>
-      <output aria-label={`${type} escolhido`}>{value[type]}</output>
+      <span className="allocation-label"><ChakraToken type={type} />{chakraDefinitions[type].name}</span>
+      <output aria-label={`${chakraDefinitions[type].name} restante`}>{available[type] - value[type]}</output>
+      <button aria-label={`Retirar ${chakraDefinitions[type].name}`} disabled={value[type] === 0} onClick={() => onChange({ ...value, [type]: value[type] - 1 })}>−</button>
+      <button aria-label={`Escolher ${chakraDefinitions[type].name}`} disabled={chosen >= required || value[type] >= available[type]} onClick={() => onChange({ ...value, [type]: value[type] + 1 })}>+</button>
+      <span className="allocation-label"><ChakraToken type={type} />{chakraDefinitions[type].name}</span>
+      <output aria-label={`${chakraDefinitions[type].name} escolhido`}>{value[type]}</output>
     </div>)}
     <small className="allocation-total" role="status">{chosen}/{required} selecionado(s)</small>
   </div>
@@ -116,19 +120,41 @@ function QueueStrip({ battle, queue, onMove, onRemove }: {
   })}</ol>
 }
 function CharacterIndicators({ battle, queue, member, inspect }: {
-  battle: BattleState; queue: PlannedAction[]; member: BattleCharacter
+  battle: BattleState
+  queue: PlannedAction[]
+  member: BattleCharacter
   inspect: (instanceId: string, skillName: string | null) => void
 }) {
   return <div className="character-indicators" aria-label={`Indicadores de ${definitionOf(member)?.name}`}>
-    {member.statuses.filter((active) => !statuses.find((entry) => entry.id === active.statusId)?.invisible || active.sourcePlayerId === battle.activePlayerId).map((activeStatus) => {
-      const source = allMembers(battle).find((entry) => entry.instanceId === activeStatus.sourceCharacterId)
-      const skill = source && definitionOf(source)?.skillDefinitions?.find((entry) => entry.effects.some((effect) => effect.type === 'apply-status' && effect.statusId === activeStatus.statusId))
-      const name = statuses.find((entry) => entry.id === activeStatus.statusId)?.name ?? activeStatus.statusId
-      return <button key={activeStatus.instanceId} className="effect-icon" title={`Ativo: ${name}`} aria-label={`Consultar efeito ativo: ${name}`} onClick={() => inspect(source?.instanceId ?? member.instanceId, skill?.name ?? null)}><SkillImage image={skill?.image} name={name} /></button>
-    })}
+    {getActiveStatuses(battle, member)
+      .filter((active) => isStatusVisible(statuses.find((entry) => entry.id === active.statusId), active, battle.activePlayerId))
+      .map((active) => {
+        const source = allMembers(battle).find((entry) => entry.instanceId === active.sourceCharacterId)
+        const sourceSkills = source ? definitionOf(source)?.skillDefinitions ?? [] : []
+        const skill = sourceSkills.find((entry) => entry.id === active.sourceSkillId)
+          ?? sourceSkills.find((entry) => entry.effects.some((effect) => effect.type === 'apply-status' && effect.statusId === active.statusId))
+        const definition = statuses.find((entry) => entry.id === active.statusId)
+        const name = skill?.name ?? definition?.name ?? active.statusId
+        return <EffectIndicator
+          key={active.instanceId}
+          name={name}
+          image={skill?.image}
+          lines={definition ? describeStatusEffect(definition, sourceSkills) : ['Efeito ativo.']}
+          duration={formatStatusDuration(battle, active, playerName)}
+          onConsult={() => inspect(source?.instanceId ?? member.instanceId, skill?.name ?? null)}
+        />
+      })}
     {queue.filter((action) => action.targetInstanceId === member.instanceId).map((action) => {
       const skill = skillForAction(battle, action)
-      return <button key={action.characterInstanceId} className="effect-icon planned-icon" title={`Planejado: ${skill?.name}. Será executado ao confirmar o turno.`} aria-label={`Consultar ação planejada: ${skill?.name}`} onClick={() => inspect(action.characterInstanceId, skill?.name ?? null)}><SkillImage image={skill?.image} name={skill?.name ?? ''} /></button>
+      return <EffectIndicator
+        key={action.characterInstanceId}
+        name={skill?.name ?? 'Habilidade'}
+        image={skill?.image}
+        planned
+        lines={[`Ação atribuída a ${definitionOf(member)?.name ?? 'este personagem'}, ainda não executada.`]}
+        duration="Será executada ao confirmar o turno."
+        onConsult={() => inspect(action.characterInstanceId, skill?.name ?? null)}
+      />
     })}
   </div>
 }
@@ -213,7 +239,7 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
     const fresh = activeSession()
     if (!fresh) return
     const next = applyExchange(fresh.battle, fresh.queue, fresh.sacrificed, fresh.chosenType, fresh.now)
-    if (!next) { commit({ ...fresh, error: 'A troca exige cinco chakras e deve preservar o pagamento das ações atribuídas.' }); return }
+    if (!next) { commit({ ...fresh, error: `A troca exige ${chakraRules.exchangeCost} chakras e deve preservar o pagamento das ações atribuídas.` }); return }
     commit({ ...fresh, battle: next, sacrificed: createEmptyChakraPool(), error: '', notice: 'Troca aplicada. Ela permanece mesmo se o turno terminar sem ações.' })
   }, [activeSession, commit])
   const surrender = useCallback(() => {
@@ -260,8 +286,8 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
           <button className="ready-button" disabled={battle.phase !== 'planning'} onClick={openConfirmation}>PRESS WHEN READY</button>
           <div className="turn-meter"><progress max={60} value={remaining} aria-label="Tempo restante do turno" /><span role="timer" aria-label="Segundos restantes">{remaining}s</span></div>
           <div className="chakra-reserve" aria-label="Chakra após custos específicos">
-            {chakraTypes.map((type) => <span key={type} title={type}><i className={`chakra-token ${type}`} aria-hidden="true" /><span className="sr-only">{type}: </span>× {available[type]}</span>)}
-            <span title="Total de chakra livre, contando cada unidade independentemente do tipo"><i className="chakra-token random" aria-hidden="true" />× {budget?.freeTotal ?? 0}</span>
+            {chakraTypes.map((type) => <span key={type} title={chakraDefinitions[type].name}><ChakraToken type={type} /><span className="sr-only">{chakraDefinitions[type].name}: </span>× {available[type]}</span>)}
+            <span title="Total de chakra livre, contando cada unidade independentemente do tipo"><ChakraToken type="random" />× {budget?.freeTotal ?? 0}</span>
             <b title="Custos qualquer reservados: escolha os tipos ao finalizar">A escolher: {randomRequired}</b>
           </div>
           <button className="exchange-link" onClick={() => {
@@ -306,11 +332,11 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
     </section></div>}
 
     {session.exchangeOpen && <div className="battle-overlay"><section className="battle-dialog chakra-dialog" role="dialog" aria-modal="true" aria-labelledby="exchange-title" onKeyDown={(event) => dialogKeys(event, closeDialog)}>
-      <h2 id="exchange-title" ref={dialogHeading} tabIndex={-1}>EXCHANGE <em>5</em> CHAKRAS FOR <em>1</em></h2>
-      <AllocationPicker available={available} value={session.sacrificed} required={5} onChange={changeAllocation} />
-      <label className="receive-chakra">Receber <select value={session.chosenType} onChange={(event) => commit({ ...current.current, chosenType: event.target.value as ChakraType })}>{chakraTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
+      <h2 id="exchange-title" ref={dialogHeading} tabIndex={-1}>EXCHANGE <em>{chakraRules.exchangeCost}</em> CHAKRAS FOR <em>{chakraRules.exchangeGain}</em></h2>
+      <AllocationPicker available={available} value={session.sacrificed} required={chakraRules.exchangeCost} onChange={changeAllocation} />
+      <label className="receive-chakra">Receber <select value={session.chosenType} onChange={(event) => commit({ ...current.current, chosenType: event.target.value as ChakraType })}>{chakraTypes.map((type) => <option key={type} value={type}>{chakraDefinitions[type].name}</option>)}</select></label>
       {session.error && <p className="dialog-error" role="alert">{errors[session.error] ?? session.error}</p>}
-      <div className="dialog-actions"><button disabled={chakraTotal(session.sacrificed) !== 5} onClick={applyTrade}>APPLY</button><button onClick={closeDialog}>CANCEL</button></div>
+      <div className="dialog-actions"><button disabled={chakraTotal(session.sacrificed) !== chakraRules.exchangeCost} onClick={applyTrade}>APPLY</button><button onClick={closeDialog}>CANCEL</button></div>
       <small className="dialog-clock">Após Apply, a troca é irreversível. Tempo: {remaining}s</small>
     </section></div>}
 

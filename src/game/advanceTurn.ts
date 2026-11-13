@@ -1,6 +1,6 @@
-import { statuses } from './statuses'
+import { statuses, hasStatusExpired } from './effects'
 import { TURN_DURATION_MS } from './rules'
-import { receiveTurnChakra } from './chakra'
+import { receiveTurnChakra } from './chakra/index'
 import type {
   BattleCharacter,
   BattlePlayer,
@@ -49,8 +49,7 @@ export function advanceTurn(
       ...character,
       statuses: character.statuses.filter((status) => {
         const expiresNow =
-          status.expiration.playerId === finishedPlayer.id &&
-          status.expiration.afterTurn <= finishedPlayer.turnsStarted
+          hasStatusExpired(status, finishedPlayer.id, finishedPlayer.turnsStarted)
 
         const sourceDied = statuses.find((entry) => entry.id === status.statusId)?.endsWhenSourceDies &&
           !Object.values(state.players).some((owner) => owner.team.some((member) => member.instanceId === status.sourceCharacterId && member.health > 0))

@@ -1,19 +1,9 @@
 import type { ChakraCost, ChakraPool, ChakraType } from './types'
-
-const chakraTypes: ChakraType[] = [
-  'bloodline',
-  'ninjutsu',
-  'taijutsu',
-  'genjutsu',
-]
+import { chakraTypes } from './definitions'
+import { chakraRules } from './config'
 
 export function createEmptyChakraPool(): ChakraPool {
-  return {
-    bloodline: 0,
-    ninjutsu: 0,
-    taijutsu: 0,
-    genjutsu: 0,
-  }
+  return Object.fromEntries(chakraTypes.map((type) => [type, 0])) as ChakraPool
 }
 
 export function generateChakra(
@@ -41,17 +31,14 @@ export function receiveTurnChakra(
     livingCharacters === 0
       ? 0
       : isFirstTurnOfBattle
-        ? 1
-        : livingCharacters
+        ? chakraRules.firstTurnAmount
+        : livingCharacters * chakraRules.perLivingCharacter
 
   const generated = generateChakra(amount)
 
-  return {
-    bloodline: currentPool.bloodline + generated.bloodline,
-    ninjutsu: currentPool.ninjutsu + generated.ninjutsu,
-    taijutsu: currentPool.taijutsu + generated.taijutsu,
-    genjutsu: currentPool.genjutsu + generated.genjutsu,
-  }
+  const next = createEmptyChakraPool()
+  for (const type of chakraTypes) next[type] = currentPool[type] + generated[type]
+  return next
 }
 export function paySkillCost(
   currentPool: ChakraPool,
@@ -110,7 +97,7 @@ export function exchangeChakra(
 
   const remaining = paySkillCost(
     currentPool,
-    { random: 5 },
+    { random: chakraRules.exchangeCost },
     sacrificed
   )
 
@@ -120,6 +107,9 @@ export function exchangeChakra(
 
   return {
     ...remaining,
-    [chosenType]: remaining[chosenType] + 1,
+    [chosenType]: remaining[chosenType] + chakraRules.exchangeGain,
   }
+}
+export function chakraTotal(pool: ChakraPool): number {
+  return chakraTypes.reduce((total, type) => total + pool[type], 0)
 }

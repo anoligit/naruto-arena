@@ -1,5 +1,5 @@
 import { characters } from '../data/characters'
-import { getActiveStatuses } from './statusRules'
+import { getActiveStatuses } from './effects'
 import type { BattleCharacter, BattleState, SkillDefinition } from './types'
 
 export function getBattleSkills(state: BattleState, character: BattleCharacter): SkillDefinition[] {
