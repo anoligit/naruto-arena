@@ -1,5 +1,5 @@
 import { getActiveStatuses } from '../effects/active'
-import { statuses } from '../effects/catalog'
+import { getAppliedModifiers } from '../effects/appliedModifiers'
 import { matchesSkillClasses } from '../classes'
 import type { ActiveStatus, BattleCharacter, BattleState, EnergyCost, SkillDefinition, StatusModifier } from '../types'
 
@@ -21,8 +21,8 @@ export function getEnemyCostEffects(state: BattleState, user: BattleCharacter): 
     for (const source of player.team) {
       if (source.health <= 0) continue
       for (const active of getActiveStatuses(state, source)) {
-        const modifiers = statuses.find((definition) => definition.id === active.statusId)?.modifiers
-          .filter((modifier): modifier is EnemyCostModifier => modifier.type === 'enemy-skill-cost-increase') ?? []
+        const modifiers = getAppliedModifiers(active)
+          .filter((modifier): modifier is EnemyCostModifier => modifier.type === 'enemy-skill-cost-increase')
         if (modifiers.length) effects.push({ source, active, modifiers })
       }
     }

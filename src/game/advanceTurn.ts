@@ -98,6 +98,8 @@ export function advanceTurn(
   return {
     ...state,
     players,
+    counterReports: (state.counterReports ?? []).filter((report) =>
+      !hasStatusExpired(report, finishedPlayer.id, finishedPlayer.turnsStarted)),
     activePlayerId: nextPlayerId,
     turnNumber: state.turnNumber + 1,
     turnEndsAt: now + TURN_DURATION_MS,

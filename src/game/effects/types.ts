@@ -22,6 +22,7 @@ export type SkillEffect =
     }
 
 export type StatusModifier =
+  | { type: 'prevent-invulnerability' }
   | { type: 'enemy-skill-cost-increase'; classes: SkillClass[]; random: number }
   | { type: 'reflect'; classes: SkillClass[] }
   | {
@@ -70,6 +71,8 @@ export type ActiveStatus = {
   sourceCharacterId: string
   sourceSkillId?: string
   appliedOnUserTurn?: number
+  appliedAt?: { turn: number; action: number; effect: number }
+  blockedModifiers?: StatusModifier['type'][]
   expiration: {
     playerId: PlayerId
     afterTurn: number
@@ -89,5 +92,6 @@ export type EffectError = 'unknown-status-definition' | 'invalid-effect-definiti
 export type EffectContext = {
   state: BattleState; playerId: PlayerId; source: BattleCharacter; target: BattleCharacter
   applicationId?: string
+  actionIndex?: number
   skill: SkillDefinition; effectIndex: number; damageEvents: DamageEvent[]
 }

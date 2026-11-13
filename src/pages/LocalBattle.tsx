@@ -1,7 +1,7 @@
+import { runComputerTurn } from '../game/training/computer'
+import { trainingRules } from '../game/training/config'
 import BattleHealthBar from '../components/BattleHealthBar'
 import { previewTurnHealth } from '../game/healthPreview'
-import { getEnemyCostEffects } from '../game/energy/skillCost'
-import { formatSkillClasses } from '../game/classes'
 import { energyLabels } from '../game/energy/index'
 import EffectIndicator from '../components/EffectIndicator'
 import { formatRemainingCooldown } from '../game/cooldown'
@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { characters } from '../data/characters'
 import { createEmptyEnergyPool, energyTotal, energyDisplayOrder as energyTypes, energyDefinitions, energyRules } from '../game/energy/index'
-import { statuses, getActiveStatuses, describeStatusEffect, formatStatusDuration, isStatusVisible } from '../game/effects'
+import { getCharacterIndicators } from '../game/effects/indicators'
 import { getRemainingTurnSeconds } from '../game/turnTimer'
 import { cancelPlannedAction, appendAction, applyExchange, confirmSession, createLocalSession, tickSession } from '../game/localBattleSession'
 import type { BattleMode, LocalBattleSession } from '../game/localBattleSession'
@@ -26,7 +26,6 @@ import '../Battle.css'
 
 const playerName = (id: PlayerId) => id === 'player-1' ? 'Jogador 1' : 'Jogador 2'
 const definitionOf = (member: BattleCharacter) => characters.find((entry) => entry.id === member.characterId)
-const allMembers = (battle: BattleState) => Object.values(battle.players).flatMap((owner) => owner.team)
 const errors: Record<string, string> = {
   'not-your-turn': 'Não é a vez deste jogador.', 'turn-expired': 'O tempo do turno acabou.',
   'character-defeated': 'Personagem derrotado.', 'already-acted': 'Este personagem já agiu neste turno.',
@@ -65,21 +64,24 @@ function Portrait({ member }: { member: BattleCharacter }) {
 function SkillImage({ image, name }: { image?: string; name: string }) {
   return image ? <img src={imageUrl(image)} alt="" draggable={false} /> : <span>{name}</span>
 }
-function SkillButton({ battle, queue, member, ownerId, skillName, inspection, pending, now, onChoose }: {
+function SkillButton({ battle, queue, member, ownerId, skillName, inspection, pending, now, readOnly = false, onChoose }: {
   battle: BattleState; queue: PlannedAction[]; member: BattleCharacter; ownerId: PlayerId; skillName: string
   inspection: BattleInspection | null; pending: LocalBattleSession['pending']; now: number
+  readOnly?: boolean
   onChoose: (member: BattleCharacter, owner: PlayerId, name: string) => void
 }) {
   const definition = definitionOf(member)
   const skill = definition?.skillDefinitions?.find((entry) => entry.name === skillName)
-  const availability = getSkillAvailability(battle, queue, ownerId, member.instanceId, skill?.id ?? '', now)
+  const availability = readOnly
+    ? { usable: false, reason: 'not-your-turn', cooldown: 0, targetInstanceIds: [] }
+    : getSkillAvailability(battle, queue, ownerId, member.instanceId, skill?.id ?? '', now)
   const selected = inspection?.characterInstanceId === member.instanceId && inspection.skillName === skillName
   const armed = pending?.characterInstanceId === member.instanceId && pending.skillId === skill?.id
-  const blocked = availability.cooldown > 0 ? ' on-cooldown' : availability.reason === 'invalid-payment' ? ' insufficient-energy' : availability.usable ? '' : ' use-blocked'
+  const blocked = availability.cooldown > 0 ? ' on-cooldown' : readOnly ? ' use-blocked' : availability.reason === 'invalid-payment' ? ' insufficient-energy' : availability.usable ? '' : ' use-blocked'
   return <button type="button" className={`battle-skill${blocked}${armed ? ' armed' : ''}`}
-    title={`${skillName} · ${availabilityText(availability.reason, availability.cooldown)}`}
+    title={`${skillName} · ${readOnly ? 'Habilidade do adversário · somente consulta.' : availabilityText(availability.reason, availability.cooldown)}`}
     aria-label={`${skillName} · ${playerName(ownerId)}`} aria-pressed={selected || armed}
-    data-use-available={availability.usable} data-block-reason={availability.reason ?? ''}
+    data-use-available={!readOnly && availability.usable} data-block-reason={readOnly ? 'not-your-turn' : availability.reason ?? ''}
     onClick={() => onChoose(member, ownerId, skillName)}>
     <SkillImage image={skill?.image} name={skillName} />
     {availability.cooldown > 0 && <strong>CD {availability.cooldown}</strong>}
@@ -124,61 +126,31 @@ function QueueStrip({ battle, queue, onMove, onRemove }: {
     </li>
   })}</ol>
 }
-function CharacterIndicators({ battle, queue, member, inspect }: {
+function CharacterIndicators({ battle, queue, member, viewerId, inspect }: {
   battle: BattleState
   queue: PlannedAction[]
+  viewerId: PlayerId
   member: BattleCharacter
   inspect: (instanceId: string, skillName: string | null) => void
 }) {
+  const indicators = getCharacterIndicators(battle, queue, member, viewerId)
   return <div className="character-indicators" aria-label={`Indicadores de ${definitionOf(member)?.name}`}>
-    {getActiveStatuses(battle, member)
-      .filter((active) => isStatusVisible(statuses.find((entry) => entry.id === active.statusId), active, battle.activePlayerId))
-      .map((active) => {
-        const source = allMembers(battle).find((entry) => entry.instanceId === active.sourceCharacterId)
-        const sourceSkills = source ? definitionOf(source)?.skillDefinitions ?? [] : []
-        const skill = sourceSkills.find((entry) => entry.id === active.sourceSkillId)
-          ?? sourceSkills.find((entry) => entry.effects.some((effect) => effect.type === 'apply-status' && effect.statusId === active.statusId))
-        const definition = statuses.find((entry) => entry.id === active.statusId)
-        const name = skill?.name ?? definition?.name ?? active.statusId
-        return <EffectIndicator
-          key={active.instanceId}
-          name={name}
-          image={skill?.image}
-          lines={definition ? describeStatusEffect(definition, sourceSkills) : ['Efeito ativo.']}
-          duration={formatStatusDuration(battle, active, playerName)}
-          onConsult={() => inspect(source?.instanceId ?? member.instanceId, skill?.name ?? null)}
-        />
-      })}
-    {getEnemyCostEffects(battle, member)
-      .filter(({ active }) => isStatusVisible(statuses.find((entry) => entry.id === active.statusId), active, battle.activePlayerId))
-      .map(({ source, active, modifiers }) => {
-        const skill = definitionOf(source)?.skillDefinitions?.find((entry) => entry.id === active.sourceSkillId)
-        const name = skill?.name ?? statuses.find((entry) => entry.id === active.statusId)?.name ?? active.statusId
-        return <EffectIndicator
-          key={`enemy-cost:${source.instanceId}:${active.instanceId}`}
-          name={name}
-          image={skill?.image}
-          lines={modifiers.map((modifier) => `As habilidades ${formatSkillClasses(modifier.classes)} deste personagem custam ${modifier.random} energia aleatória adicional por uso.`)}
-          duration={formatStatusDuration(battle, active, playerName)}
-          onConsult={() => inspect(source.instanceId, skill?.name ?? null)}
-        />
-      })}
-    {queue.filter((action) => getPlannedTargets(battle, action).some((target) => target.instanceId === member.instanceId)).map((action) => {
-      const skill = skillForAction(battle, action)
-      return <EffectIndicator
-        key={action.characterInstanceId}
-        name={skill?.name ?? 'Habilidade'}
-        image={skill?.image}
-        planned
-        lines={[`Ação atribuída a ${definitionOf(member)?.name ?? 'este personagem'}, ainda não executada.`]}
-        duration="Será executada ao confirmar o turno."
-        onConsult={() => inspect(action.characterInstanceId, skill?.name ?? null)}
-      />
-    })}
+    {indicators.map((indicator) => <EffectIndicator
+      key={indicator.id}
+      name={indicator.name}
+      image={indicator.image}
+      lines={indicator.lines}
+      duration={indicator.duration}
+      origin={indicator.origin}
+      planned={indicator.planned}
+      record={indicator.counterReport}
+      onConsult={() => inspect(indicator.sourceCharacterId, indicator.sourceSkillName)}
+    />)}
   </div>
 }
 
 export default function LocalBattle({ initialState, mode, onContinue }: { initialState: BattleState; mode: BattleMode; onContinue: () => void }) {
+  const training = mode === 'training'
   const [inspection, setInspection] = useState<BattleInspection | null>(null)
   const [session, setSession] = useState(() => createLocalSession(initialState, Date.now()))
   const current = useRef(session)
@@ -194,18 +166,21 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
   useEffect(() => {
     if (session.battle.phase === 'confirmation' || session.battle.phase === 'finished' || session.surrenderPending || session.exchangeOpen) dialogHeading.current?.focus()
   }, [session.battle.phase, session.surrenderPending, session.exchangeOpen])
-  const activeSession = useCallback(() => {
+  const activeSession = useCallback((allowOpponentTurn = false) => {
     const before = current.current, fresh = tickSession(before, Date.now())
     if (fresh.battle !== before.battle) { commit(fresh); return null }
+    if (training && !allowOpponentTurn && fresh.battle.activePlayerId !== trainingRules.humanPlayerId) return null
     return fresh.battle.phase === 'finished' ? null : fresh
-  }, [commit])
+  }, [commit, training])
 
   const { battle, queue, pending } = session
-  const healthPreview = useMemo(() => previewTurnHealth(battle, queue, battle.activePlayerId, session.now), [battle, queue, session.now])
-  const active = battle.players[battle.activePlayerId]
+  const viewerId = training ? trainingRules.humanPlayerId : battle.activePlayerId
+  const computerTurn = training && battle.activePlayerId === trainingRules.computerPlayerId
+  const healthPreview = useMemo(() => previewTurnHealth(battle, queue, viewerId, session.now), [battle, queue, viewerId, session.now])
+  const active = battle.players[viewerId]
   const enemy = battle.players[active.id === 'player-1' ? 'player-2' : 'player-1']
-  const budget = getQueueBudget(battle, queue)
-  const available = budget?.afterSpecific ?? createEmptyEnergyPool()
+  const budget = computerTurn ? null : getQueueBudget(battle, queue)
+  const available = computerTurn ? active.energy : budget?.afterSpecific ?? createEmptyEnergyPool()
   const randomRequired = budget?.randomRequired ?? 0
   const remaining = getRemainingTurnSeconds(battle, session.now)
   const pendingAvailability = pending ? getSkillAvailability(battle, queue, active.id, pending.characterInstanceId, pending.skillId, session.now) : null
@@ -215,14 +190,26 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
   const inspectedAvailability = inspectedMember && inspectedOwner && inspection?.skillName ? getSkillAvailability(battle, queue, inspectedOwner.id, inspectedMember.instanceId, inspectedSkill?.id ?? '', session.now) : null
   const modalOpen = battle.phase !== 'planning' || session.surrenderPending || session.exchangeOpen
 
+  useEffect(() => {
+    if (!training || battle.activePlayerId !== trainingRules.computerPlayerId || battle.phase !== 'planning' || session.surrenderPending || session.exchangeOpen) return
+    const turn = battle.turnNumber
+    const timer = window.setTimeout(() => {
+      const fresh = current.current
+      if (fresh.battle.turnNumber !== turn || fresh.battle.activePlayerId !== trainingRules.computerPlayerId) return
+      commit(runComputerTurn(fresh, Date.now()))
+    }, trainingRules.thinkingTimeMs)
+    return () => window.clearTimeout(timer)
+  }, [training, battle.activePlayerId, battle.phase, battle.turnNumber, session.surrenderPending, session.exchangeOpen, commit])
+
   const inspect = useCallback((instanceId: string, skillName: string | null) => setInspection({ characterInstanceId: instanceId, skillName }), [])
   const chooseSkill = useCallback((member: BattleCharacter, ownerId: PlayerId, skillName: string) => {
     inspect(member.instanceId, skillName)
+    if (training && (ownerId !== trainingRules.humanPlayerId || current.current.battle.activePlayerId !== trainingRules.humanPlayerId)) return
     const fresh = tickSession(current.current, Date.now())
     const skill = definitionOf(member)?.skillDefinitions?.find((entry) => entry.name === skillName)
     const usable = getSkillAvailability(fresh.battle, fresh.queue, ownerId, member.instanceId, skill?.id ?? '', fresh.now).usable
     commit({ ...fresh, error: '', notice: '', pending: usable && skill ? { characterInstanceId: member.instanceId, skillId: skill.id } : null })
-  }, [commit, inspect])
+  }, [commit, inspect, training])
   const chooseCharacter = useCallback((member: BattleCharacter) => {
     const fresh = activeSession()
     if (!fresh?.pending) { inspect(member.instanceId, null); return }
@@ -248,7 +235,7 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
     if (fresh?.battle.phase === 'planning') commit({ ...fresh, pending: null, exchangeOpen: false, randomPayment: createEmptyEnergyPool(), error: '', notice: '', battle: { ...fresh.battle, phase: 'confirmation' } })
   }, [activeSession, commit])
   const closeDialog = useCallback(() => {
-    const fresh = activeSession()
+    const fresh = activeSession(true)
     if (fresh) commit({ ...fresh, exchangeOpen: false, surrenderPending: false, error: '', randomPayment: createEmptyEnergyPool(), battle: { ...fresh.battle, phase: 'planning' } })
   }, [activeSession, commit])
   const changeAllocation = useCallback((value: EnergyPool) => {
@@ -263,14 +250,14 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
     commit({ ...fresh, battle: next, sacrificed: createEmptyEnergyPool(), error: '', notice: 'Troca aplicada. Ela permanece mesmo se o turno terminar sem ações.' })
   }, [activeSession, commit])
   const surrender = useCallback(() => {
-    const fresh = activeSession()
+    const fresh = activeSession(true)
     if (fresh) commit({ ...fresh, surrenderPending: true, pending: null })
   }, [activeSession, commit])
   const confirmSurrender = useCallback(() => {
-    const fresh = activeSession()
+    const fresh = activeSession(true)
     if (!fresh?.surrenderPending) return
-    commit({ ...fresh, queue: [], pending: null, surrenderPending: false, battle: { ...fresh.battle, phase: 'finished', turnEndsAt: null, winnerId: fresh.battle.activePlayerId === 'player-1' ? 'player-2' : 'player-1' } })
-  }, [activeSession, commit])
+    commit({ ...fresh, queue: [], pending: null, surrenderPending: false, battle: { ...fresh.battle, phase: 'finished', turnEndsAt: null, winnerId: training ? trainingRules.computerPlayerId : fresh.battle.activePlayerId === 'player-1' ? 'player-2' : 'player-1' } })
+  }, [activeSession, commit, training])
 
   function memberRow(member: BattleCharacter, ownerId: PlayerId, isAlly: boolean) {
     const definition = definitionOf(member)
@@ -287,12 +274,12 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
           label={`Vida de ${definition?.name}, ${playerName(ownerId)}`} />
         <small className="combat-name">{definition?.name}</small>
       </div>
-      <CharacterIndicators battle={battle} queue={queue} member={member} inspect={inspect} />
+      <CharacterIndicators battle={battle} queue={queue} member={member} viewerId={viewerId} inspect={inspect} />
       {isAlly && <div className="skill-scroll">
         <button className={`assigned-skill ${assigned ? 'has-assignment' : ''}`} disabled={!assigned} title={assigned ? `Cancelar ${assignedSkill?.name}` : 'Nenhuma ação atribuída'} aria-label={assigned ? `Cancelar ação de ${definition?.name}` : `Nenhuma ação de ${definition?.name}`} onClick={() => removeAction(member.instanceId)}>
           {assigned ? <><SkillImage image={assignedSkill?.image} name={assignedSkill?.name ?? ''} /><span className="assignment-cancel">×</span></> : '?'}
         </button>
-        <div className="battle-skills">{getBattleSkillNames(battle, member).map((skillName) => <SkillButton key={skillName} battle={battle} queue={queue} member={member} ownerId={ownerId} skillName={skillName} inspection={inspection} pending={pending} now={session.now} onChoose={chooseSkill} />)}</div>
+        <div className="battle-skills">{getBattleSkillNames(battle, member).map((skillName) => <SkillButton key={skillName} battle={battle} queue={queue} member={member} ownerId={ownerId} skillName={skillName} inspection={inspection} pending={pending} now={session.now} readOnly={training && ownerId !== trainingRules.humanPlayerId} onChoose={chooseSkill} />)}</div>
       </div>}
     </article>
   }
@@ -300,20 +287,20 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
   return <div className="local-battle">
     <div className="combat-screen" inert={modalOpen}>
       <header className="battle-header">
-        <div className="player-card"><strong>{playerName(active.id)}</strong><small>SUA VEZ · {mode.toUpperCase()} LOCAL</small><small>Turno {battle.turnNumber}</small></div>
+        <div className="player-card"><strong>{training ? 'Você · Jogador 1' : playerName(active.id)}</strong><small>{training ? `${computerTurn ? 'AGUARDANDO' : 'SUA VEZ'} · TREINAMENTO` : `SUA VEZ · ${mode.toUpperCase()} LOCAL`}</small><small>Turno {battle.turnNumber}</small></div>
         <div className="turn-center">
-          <button className="ready-button" disabled={battle.phase !== 'planning'} onClick={openConfirmation}>PRESS WHEN READY</button>
+          <button className="ready-button" disabled={battle.phase !== 'planning' || computerTurn} onClick={openConfirmation}>{computerTurn ? 'OPPONENT TURN...' : 'PRESS WHEN READY'}</button>
           <div className="turn-meter"><progress max={60} value={remaining} aria-label="Tempo restante do turno" /><span role="timer" aria-label="Segundos restantes">{remaining}s</span></div>
           <div className="energy-reserve" aria-label={energyLabels.afterSpecificCosts}>
             {energyTypes.map((type) => <span key={type} title={energyDefinitions[type].name}><EnergyToken type={type} /><span className="sr-only">{energyDefinitions[type].name}: </span>× {available[type]}</span>)}
             <span title={energyLabels.freeTotal}><EnergyToken type="random" />× {budget?.freeTotal ?? 0}</span>
             <b title={energyLabels.reservedHelp}>{energyLabels.pending}: {randomRequired}</b>
           </div>
-          <button className="exchange-link" onClick={() => {
+          <button className="exchange-link" disabled={computerTurn} onClick={() => {
             const fresh = activeSession(); if (fresh) commit({ ...fresh, pending: null, exchangeOpen: true, sacrificed: createEmptyEnergyPool(), error: '' })
           }}>{energyLabels.exchange}</button>
         </div>
-        <div className="player-card enemy-player"><strong>{playerName(enemy.id)}</strong><small>EQUIPE ADVERSÁRIA</small><small>Teste local · equipe espelhada</small></div>
+        <div className="player-card enemy-player"><strong>{training ? 'Adversário · Jogador 2' : playerName(enemy.id)}</strong><small>EQUIPE ADVERSÁRIA</small><small>{training ? 'Treinamento · adversário automático' : 'Teste local · equipe espelhada'}</small></div>
       </header>
 
       <main className="combat-field" aria-label="Campo de batalha">
@@ -325,17 +312,17 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
         <aside className="battle-tools">
           <button className="scroll-button" onClick={surrender}>SURRENDER</button>
           <div className="turn-help" role={session.error ? 'alert' : 'status'}>
-            {session.error ? errors[session.error] ?? session.error : pending ? 'Clique em um alvo dourado para atribuir a habilidade.' : session.notice || 'Clique em um personagem ou habilidade para consultar.'}
+            {session.error ? errors[session.error] ?? session.error : computerTurn ? 'O adversário está escolhendo suas ações...' : pending ? 'Clique em um alvo dourado para atribuir a habilidade.' : session.notice || 'Clique em um personagem ou habilidade para consultar.'}
           </div>
           <small className="queue-summary">Ações atribuídas: {queue.length}/3 · {energyLabels.reserved}: {randomRequired}</small>
           <details className="battle-history"><summary>Histórico</summary><ul>{session.log.map((entry, index) => <li key={`${index}:${entry}`}>{entry}</li>)}</ul></details>
         </aside>
         <div className="inspection-area">
           <div className="inspection-toolbar"><span>{inspection ? 'PERSONAGEM / HABILIDADE' : 'CLICK ON A SKILL'}</span>
-            {inspectedMember && inspectedOwner && <div className="inspection-shortcuts">{getBattleSkillNames(battle, inspectedMember).map((skillName) => <SkillButton key={skillName} battle={battle} queue={queue} member={inspectedMember} ownerId={inspectedOwner.id} skillName={skillName} inspection={inspection} pending={pending} now={session.now} onChoose={chooseSkill} />)}</div>}
+            {inspectedMember && inspectedOwner && <div className="inspection-shortcuts">{getBattleSkillNames(battle, inspectedMember).map((skillName) => <SkillButton key={skillName} battle={battle} queue={queue} member={inspectedMember} ownerId={inspectedOwner.id} skillName={skillName} inspection={inspection} pending={pending} now={session.now} readOnly={training && inspectedOwner.id !== trainingRules.humanPlayerId} onChoose={chooseSkill} />)}</div>}
           </div>
           <BattleInspectionPanel battle={battle} inspection={inspection} onCharacter={(instanceId) => inspect(instanceId, null)} onSkill={inspect} />
-          {inspectedAvailability && <div className="skill-use-status">{availabilityText(inspectedAvailability.reason, inspectedAvailability.cooldown)}</div>}
+          {inspectedAvailability && <div className="skill-use-status">{training && inspectedOwner?.id !== trainingRules.humanPlayerId ? 'Habilidade do adversário · somente consulta.' : availabilityText(inspectedAvailability.reason, inspectedAvailability.cooldown)}</div>}
         </div>
       </footer>
     </div>
@@ -372,7 +359,7 @@ export default function LocalBattle({ initialState, mode, onContinue }: { initia
       <div className="dialog-actions"><button onClick={confirmSurrender}>Confirmar desistência</button><button onClick={closeDialog}>Voltar à batalha</button></div>
     </section></div>}
     {battle.phase === 'finished' && <div className="battle-overlay"><section className="battle-dialog result-dialog" role="dialog" aria-modal="true" aria-labelledby="result-title" onKeyDown={dialogKeys}>
-      <h2 id="result-title" ref={dialogHeading} tabIndex={-1}>{battle.winnerId ? 'WINNER' : 'EMPATE'}</h2><p>{battle.winnerId ? `${playerName(battle.winnerId)} venceu a batalha local.` : 'As duas equipes foram derrotadas.'}</p><p>Teste local · sem alterações de ranking ou missões.</p><button className="continue-button" onClick={onContinue}>CONTINUE · Voltar à seleção</button>
+      <h2 id="result-title" ref={dialogHeading} tabIndex={-1}>{battle.winnerId ? training ? battle.winnerId === trainingRules.humanPlayerId ? 'VITÓRIA' : 'DERROTA' : 'WINNER' : 'EMPATE'}</h2><p>{battle.winnerId ? training ? battle.winnerId === trainingRules.humanPlayerId ? 'Você venceu o treinamento.' : 'O adversário venceu o treinamento.' : `${playerName(battle.winnerId)} venceu a batalha local.` : 'As duas equipes foram derrotadas.'}</p><p>{training ? 'Treinamento' : 'Teste local'} · sem alterações de ranking ou missões.</p><button className="continue-button" onClick={onContinue}>CONTINUE · Voltar à seleção</button>
     </section></div>}
   </div>
 }

@@ -13,7 +13,7 @@ await build({
   },
 })
 process.env.ARENA_TEST_MODULE = pathToFileURL(path.join(outDir, 'game.mjs')).href
-for (const test of ['characters', 'kakashi', 'energy', 'haku', 'zabuza', 'indicators', 'registration', 'target-flow', 'health-preview']) {
+for (const test of ['characters', 'kakashi', 'energy', 'haku', 'zabuza', 'indicators', 'registration', 'target-flow', 'health-preview', 'effect-order', 'counter-reports', 'indicator-duration', 'training']) {
   const result = spawnSync(process.execPath, [path.join(root, 'tests', `${test}.mjs`)], { stdio: 'inherit', env: process.env })
   if (result.error) throw result.error
   if (result.status !== 0) process.exit(result.status ?? 1)

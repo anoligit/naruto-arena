@@ -69,6 +69,7 @@ export type BattlePlayer = {
 }
 
 export type BattleState = {
+  counterReports: import('./effects/counters').CounterReport[]
   players: Record<PlayerId, BattlePlayer>
   activePlayerId: PlayerId
   turnNumber: number

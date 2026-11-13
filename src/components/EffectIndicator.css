@@ -40,3 +40,26 @@
 .effect-tooltip em {
   font-style: normal;
 }
+
+/* Identifica a origem sem alterar as medidas ou a ordem dos ícones. */
+.effect-icon {
+  position: relative;
+}
+
+.effect-icon .effect-origin {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 10px;
+  height: 11px;
+  border: 1px solid #111;
+  pointer-events: none;
+}
+
+.effect-origin-ally {
+  background: #166f9c;
+}
+
+.effect-origin-enemy {
+  background: #b42328;
+}

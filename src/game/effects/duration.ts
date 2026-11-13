@@ -11,6 +11,6 @@ export function createStatusExpiration(
   return { playerId, afterTurn: state.players[playerId].turnsStarted + definition.duration.turns }
 }
 
-export function hasStatusExpired(active: ActiveStatus, finishedPlayerId: PlayerId, finishedTurns: number): boolean {
+export function hasStatusExpired(active: Pick<ActiveStatus, 'expiration'>, finishedPlayerId: PlayerId, finishedTurns: number): boolean {
   return active.expiration.playerId === finishedPlayerId && active.expiration.afterTurn <= finishedTurns
 }

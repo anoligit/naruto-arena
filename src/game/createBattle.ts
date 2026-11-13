@@ -76,6 +76,7 @@ now: number = Date.now()
 
   return {
     players,
+    counterReports: [],
     activePlayerId: startingPlayerId,
     turnNumber: 1,
     turnEndsAt: now + TURN_DURATION_MS,

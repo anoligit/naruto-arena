@@ -33,3 +33,38 @@ A duração exibida vem da expiração real do efeito, separada do cooldown. A a
 A interface recebe apenas vida atual e estimada. Cancelar, trocar ou reordenar ações recalcula a previsão. A confirmação continua usando o estado completo, por isso um efeito oculto pode produzir um resultado real diferente. A previsão nunca confirma ações ou altera os personagens reais.
 
 Ao implementar uma mecânica nova que afete vida, inclua testes tanto do resultado público quanto da comparação entre cenários com e sem efeitos ocultos. Se essa mecânica tiver efeitos no encerramento do turno, revise o ponto de simulação antes de apresentar a vida do próximo turno.
+
+## Ordem de aplicação e invulnerabilidade
+
+Cada status criado pelo motor registra `appliedAt`: turno global, posição da ação confirmada e posição do efeito naquela habilidade. `indicators.ts` reúne os efeitos diretos e auras numa lista cronológica; ações ainda planejadas aparecem depois, na ordem da fila. A origem aliada/inimiga é comparada ao jogador da vez, identificada por uma marca azul (aliada) ou vermelha (inimiga), sem letras, e explicada no tooltip. Origem não é critério de ordenação. Efeitos inimigos invisíveis não geram ícones.
+
+Para um personagem que deve impedir novas invulnerabilidades, inclua no status da sua habilidade:
+
+```ts
+modifiers: [{ type: 'prevent-invulnerability' }]
+```
+
+O bloqueio vale no momento da aplicação:
+
+- Bloqueio antes da proteção: a habilidade de proteção ainda pode ser usada e paga energia, ação e cooldown, mas a nova invulnerabilidade é impedida.
+- Proteção antes do bloqueio: a proteção já existente continua até sua expiração normal; esse modificador não é uma remoção de efeitos.
+- Efeito com outros benefícios: somente o modificador de invulnerabilidade é suprimido. As demais partes continuam funcionando.
+- Uma proteção impedida não reaparece quando o bloqueio termina.
+
+`blockedModifiers` pertence à aplicação, não ao cadastro. `getAppliedModifiers` é a consulta comum usada pelas regras e pelos indicadores para respeitar essa supressão. Mudanças de habilidades liberadas por um status, como o ataque em área dos espelhos do Haku, são preservadas quando só a proteção é bloqueada.
+
+Esse modificador está disponível para habilidades futuras; nenhum personagem atual ganhou esse bloqueio automaticamente. Para remover uma invulnerabilidade já ativa, será necessária uma regra explícita de remoção, com suas próprias condições.
+
+## Registro de counters
+
+`counters.ts` registra uma interação apenas quando o counter é realmente ativado na resolução. Reflexão, cancelamento de Control e impedimento de nova invulnerabilidade identificam a habilidade counterada e a habilidade/personagem que a interceptou. Um counter invisível que não disparou continua oculto.
+
+O registro pertence a `BattleState.counterReports`, separado dos status ativos: não aplica efeitos, não prolonga defesas e não volta a executar a habilidade. Fica visível após a confirmação, mesmo quando o efeito original expira, apenas no turno imediatamente seguinte à ativação do counter. Ao terminar esse turno, o aviso desaparece e não reaparece na próxima vez do jogador counterado. Timeout também encerra esse prazo. Uma fila inválida reverte os registros juntamente com as demais alterações da ação.
+
+A linha de indicadores inclui esses avisos na posição cronológica da interação. O tooltip mostra a habilidade counterada, o counter, o personagem responsável e o resultado. Ao adicionar uma nova mecânica de counter, registre sua ocorrência em `recordCounter` no ponto em que ela efetivamente interrompe a habilidade. Não revele a defesa ao apenas planejar, consultar ou prever vida.
+
+## Indicadores por personagem e texto de duração
+
+Um indicador acompanha o efeito naquele personagem até sua expiração ou interrupção. Uma habilidade com vários destinatários mantém indicadores independentes: Sharingan mostra a defesa no Sasuke e a marca no inimigo; a névoa mostra proteção no Zabuza e aumento de custo nos inimigos. O texto descreve os efeitos do destinatário daquele ícone.
+
+A duração é exibida como `3 turnos`, `2 turnos` ou `1 turno`, sem nomear o jogador usado pelo relógio interno. No turno em que o efeito efetivamente vai expirar, mostra `acaba esse turno`. Essa mudança de texto não altera a contagem das regras. Avisos de counter continuam aparecendo somente no turno seguinte à ocorrência e também usam `acaba esse turno`.

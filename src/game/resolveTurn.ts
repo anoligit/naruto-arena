@@ -1,3 +1,4 @@
+import { recordCounter } from './effects/counters'
 import { getSkillTargets } from './targeting/index'
 import { isValidCooldown, getCooldownReadyTurn } from './cooldown'
 import { advanceTurn } from './advanceTurn'
@@ -45,6 +46,7 @@ export function resolveTurn(
   }
 
   const working = structuredClone(state)
+  working.counterReports ??= []
   const damageEvents: DamageEvent[] = []
 
   for (const [actionIndex, request] of actions.entries()) {
@@ -72,7 +74,11 @@ export function resolveTurn(
 
     const appliedSelfEffects = new Set<number>()
     for (const affectedTarget of targets) {
-      const { reflected, blockedReflection } = getSkillReflection(working, source, affectedTarget, skill)
+      const { reflected, blockedReflection, counter } = getSkillReflection(working, source, affectedTarget, skill)
+      if (counter) {
+        const outcome = skill.classes.includes('control') ? 'cancelled' : blockedReflection ? 'return-blocked' : 'reflected'
+        recordCounter(working, source, skill, counter, affectedTarget.instanceId, outcome, actionIndex, -1)
+      }
       for (const [effectIndex, effect] of (blockedReflection ? [] : skill.effects).entries()) {
         const appliesToUser = effect.type === 'apply-status' && effect.recipient === 'user'
         if (appliesToUser && appliedSelfEffects.has(effectIndex)) continue
@@ -82,6 +88,7 @@ export function resolveTurn(
           source,
           target: reflected ? source : affectedTarget,
           applicationId: affectedTarget.instanceId,
+          actionIndex,
           skill,
           effectIndex,
           damageEvents,

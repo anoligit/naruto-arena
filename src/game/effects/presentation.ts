@@ -9,6 +9,8 @@ export function describeStatusEffect(definition: StatusDefinition, skills: reado
   const skillName = (id: string) => skills.find((skill) => skill.id === id)?.name ?? id
   const describe = (modifier: StatusModifier): string => {
     switch (modifier.type) {
+      case 'prevent-invulnerability':
+        return 'Impede novas invulnerabilidades. Não remove as que já estavam ativas antes deste efeito.'
       case 'enemy-skill-cost-increase':
         return `As habilidades inimigas das classes ${formatSkillClasses(modifier.classes)} custam ${number(modifier.random)} energia aleatória adicional por uso.`
       case 'damage-reduction':
@@ -56,13 +58,12 @@ export function getStatusRemainingTurns(battle: BattleState, active: ActiveStatu
 
 export function formatStatusDuration(
   battle: BattleState,
-  active: ActiveStatus,
-  playerName: (id: PlayerId) => string
+  active: ActiveStatus
 ): string {
   const remaining = getStatusRemainingTurns(battle, active)
   if (remaining === 0) return 'Efeito encerrado.'
-  if (remaining === 1 && active.expiration.playerId === battle.activePlayerId) return 'Termina ao final deste turno.'
-  return `Termina ao final de ${remaining} ${remaining === 1 ? 'jogada' : 'jogadas'} do ${playerName(active.expiration.playerId)}.`
+  if (remaining === 1 && active.expiration.playerId === battle.activePlayerId) return 'acaba esse turno'
+  return `${remaining} ${remaining === 1 ? 'turno' : 'turnos'}`
 }
 
 export function isStatusVisible(definition: StatusDefinition | undefined, active: ActiveStatus, viewerId: PlayerId): boolean {

@@ -1,3 +1,4 @@
+import { getAppliedModifiers } from './appliedModifiers'
 import { isInvulnerableByModifiers } from './protection'
 import { characters } from '../../data/characters'
 import { statuses } from './catalog'
@@ -12,10 +13,10 @@ export function getActiveStatuses(state: BattleState, character: BattleCharacter
       .find((member) => member.instanceId === active.sourceCharacterId)
     if (definition?.endsWhenSourceDies && (!source || source.health <= 0)) return false
     if (definition?.control && source) {
-      const modifiers = source.statuses.flatMap((entry) => statuses.find((status) => status.id === entry.statusId)?.modifiers ?? [])
+      const modifiers = source.statuses.flatMap(getAppliedModifiers)
       const skill = characters.find((entry) => entry.id === source.characterId)?.skillDefinitions?.find((entry) => entry.id === active.sourceSkillId)
       const stunned = isStunnedByModifiers(modifiers, skill)
-      const targetModifiers = character.statuses.flatMap((entry) => statuses.find((status) => status.id === entry.statusId)?.modifiers ?? [])
+      const targetModifiers = character.statuses.flatMap(getAppliedModifiers)
       const invulnerable = isInvulnerableByModifiers(targetModifiers, skill)
       if (stunned || invulnerable) return false
     }
@@ -24,7 +25,7 @@ export function getActiveStatuses(state: BattleState, character: BattleCharacter
 }
 
 export function getActiveModifiers(state: BattleState, character: BattleCharacter): StatusModifier[] {
-  return getActiveStatuses(state, character).flatMap((active) => statuses.find((entry) => entry.id === active.statusId)?.modifiers ?? [])
+  return getActiveStatuses(state, character).flatMap(getAppliedModifiers)
 }
 
 export function hasActiveModifier(state: BattleState, character: BattleCharacter, type: StatusModifier['type']): boolean {

@@ -7,6 +7,7 @@ import { useState } from 'react'
 import type { Dispatch, SetStateAction, DragEvent } from 'react'
 import { characters } from '../data/characters'
 import type { Character } from '../data/characters'
+import { createTrainingBattle } from '../game/training/createTrainingBattle'
 import { createBattle } from '../game/createBattle'
 import { getCompleteTeam } from '../game/teamRules'
 import type { BattleState } from '../game/types'
@@ -108,7 +109,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
     const readyTeam = getCompleteTeam(team)
     if (!readyTeam) return
     // Local mirror match only; online modes will use a separate opponent later.
-    const state = createBattle(readyTeam, readyTeam, 'player-1', 100)
+    const state = mode === 'training' ? createTrainingBattle(readyTeam) : createBattle(readyTeam, readyTeam, 'player-1', 100)
     setLocalBattle({ state, mode })
   }
 
@@ -147,6 +148,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
         <button disabled={!completeTeam} title="Local test · no ranking" onClick={() => startBattle('ladder')}>Start Ladder Game</button>
         <button disabled={!completeTeam} title="Local test · two players on this computer" onClick={() => startBattle('quick')}>Start Quick Game</button>
         <button disabled={!completeTeam} title="Local test · no online room yet" onClick={() => startBattle('private')}>Start Private Game</button>
+        <button disabled={!completeTeam} title="Enfrente o adversário controlado pelo jogo" onClick={() => startBattle('training')}>Treinamento</button>
       </nav>
 
       <section className="selection-panel">

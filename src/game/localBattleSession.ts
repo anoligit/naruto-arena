@@ -5,7 +5,7 @@ import { buildConfirmedActions, getQueueBudget, validatePlannedAction } from './
 import type { PlannedAction } from './plannedActions'
 import type { BattleState, EnergyPool, EnergyType } from './types'
 
-export type BattleMode = 'ladder' | 'quick' | 'private'
+export type BattleMode = 'ladder' | 'quick' | 'private' | 'training'
 
 export function appendAction(
   battle: BattleState, queue: readonly PlannedAction[], action: PlannedAction, now: number

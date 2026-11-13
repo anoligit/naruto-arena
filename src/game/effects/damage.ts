@@ -1,4 +1,4 @@
-import { statuses } from './catalog'
+import { getAppliedModifiers } from './appliedModifiers'
 import { getActiveModifiers, getActiveStatuses } from './active'
 import { nonnegative, validModifier } from './validation'
 import { calculateProtectedDamage } from './protection'
@@ -21,7 +21,7 @@ export function applyDamage(effect: Extract<SkillEffect, { type: 'damage' }>, co
   }
   let bonus = 0
   for (const active of getActiveStatuses(context.state, context.target)) {
-    const modifiers = statuses.find((entry) => entry.id === active.statusId)?.modifiers ?? []
+    const modifiers = getAppliedModifiers(active)
     for (const modifier of modifiers) {
       if (modifier.type !== 'damage-taken-multiplier' && modifier.type !== 'damage-taken-bonus') continue
       if (modifier.skillId !== context.skill.id || (modifier.fromSourceOnly && active.sourceCharacterId !== context.source.instanceId)) continue
@@ -43,8 +43,7 @@ export function triggerSkillUseDamage(
   user: BattleCharacter, activeBefore: ActiveStatus[], events: DamageEvent[]
 ): void {
   for (const active of activeBefore) {
-    const definition = statuses.find((entry) => entry.id === active.statusId)
-    for (const modifier of definition?.modifiers ?? []) {
+    for (const modifier of getAppliedModifiers(active)) {
       if (modifier.type !== 'on-skill-use-damage') continue
       events.push({ sourceInstanceId: active.sourceCharacterId, targetInstanceId: user.instanceId,
         skillId: active.sourceSkillId ?? active.statusId, amount: modifier.amount, damageType: modifier.damageType })

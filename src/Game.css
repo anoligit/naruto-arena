@@ -243,7 +243,7 @@
 .game .game-menu {
   grid-row: 2;
   display: grid;
-  grid-template-columns: 210px repeat(3, minmax(0, 1fr));
+  grid-template-columns: 210px repeat(4, minmax(0, 1fr));
   gap: 18px;
   align-items: center;
   min-width: 0;
@@ -446,7 +446,7 @@
   }
 
   .game .game-menu {
-    grid-template-columns: 170px repeat(3, minmax(0, 1fr));
+    grid-template-columns: 170px repeat(4, minmax(0, 1fr));
     gap: 12px;
   }
 }

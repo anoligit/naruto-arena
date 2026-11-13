@@ -16,9 +16,10 @@ export { teamReducer } from '../src/teamState'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import LocalBattle from '../src/pages/LocalBattle'
+import type { BattleMode } from '../src/game/localBattleSession'
 import type { BattleState } from '../src/game/types'
-export function renderBattle(state: BattleState) {
-  return renderToStaticMarkup(createElement(LocalBattle, { initialState: state, mode: 'quick', onContinue: () => {} }))
+export function renderBattle(state: BattleState, mode: BattleMode = 'quick') {
+  return renderToStaticMarkup(createElement(LocalBattle, { initialState: state, mode, onContinue: () => {} }))
 }
 import CharacterDetailsPanel from '../src/pages/selection/CharacterDetailsPanel'
 import type { Character } from '../src/characters/definition'
@@ -31,4 +32,12 @@ export { previewTurnHealth, visibleBattleForPreview } from '../src/game/healthPr
 import BattleHealthBar from '../src/components/BattleHealthBar'
 export function renderHealthBar(health: number, maxHealth: number, projectedHealth?: number) {
   return renderToStaticMarkup(createElement(BattleHealthBar, { health, maxHealth, projectedHealth, label: 'Vida de teste' }))
+}
+export { getCharacterIndicators } from '../src/game/effects/indicators'
+export { getAppliedModifiers } from '../src/game/effects/appliedModifiers'
+export { createTrainingBattle } from '../src/game/training/createTrainingBattle'
+export { planComputerTurn, runComputerTurn } from '../src/game/training/computer'
+import StartPlaying from '../src/pages/StartPlaying'
+export function renderSelection(team: (Character | null)[]) {
+  return renderToStaticMarkup(createElement(StartPlaying, { team, setTeam: () => {} }))
 }
