@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sala de teste — Naruto Arena</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #d7c69d; color: #222; font: 16px system-ui, sans-serif; }
+  main { max-width: 620px; margin: 30px auto; padding: 24px; background: #fff7df; border: 2px solid #79633a; }
+  h1 { color: #b61f28; margin-top: 0; }
+  label { display: block; margin-top: 16px; }
+  input, button { font: inherit; padding: 10px; margin-top: 6px; max-width: 100%; }
+  input { width: 100%; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+  #estado { min-height: 24px; }
+  #historico { padding-left: 24px; overflow-wrap: anywhere; max-height: 260px; overflow-y: auto; }
+  [hidden] { display: none !important; }
+</style>
+<main>
+  <h1>Sala privada de teste</h1>
+  <p>Conexão entre dois jogadores. O combate ainda não está conectado.</p>
+  <p id="estado" role="status">Conectando…</p>
+  <form id="entrada">
+    <label>Seu nome <input id="nome" maxlength="24" required autocomplete="nickname"></label>
+    <label>Código da sala <input id="codigo" maxlength="6" placeholder="Deixe vazio para criar uma sala" pattern="[A-Za-z2-9]{6}"></label>
+    <button id="entrar" disabled>Criar ou entrar</button>
+  </form>
+  <section id="sala" hidden>
+    <h2 id="titulo"></h2>
+    <label>Link de convite <input id="convite" readonly></label>
+    <button id="copiar" type="button">Copiar link</button>
+    <p id="jogadores"></p>
+    <p id="aviso"></p>
+    <ul id="historico" aria-live="polite"></ul>
+    <form id="conversa">
+      <label>Mensagem <input id="texto" maxlength="300" required></label>
+      <button id="enviar">Enviar</button>
+    </form>
+  </section>
+</main>
+<script>
+  const elemento = id => document.getElementById(id)
+  elemento('codigo').value = new URLSearchParams(location.hash.slice(1)).get('sala') || ''
+  // Mesmo endereço da página; usa conexão criptografada quando o site usa HTTPS.
+  const conexao = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/play`)
+  conexao.addEventListener('open', () => {
+    elemento('estado').textContent = 'Conectado. Escolha seu nome para começar.'
+    elemento('entrar').disabled = false
+  })
+  conexao.addEventListener('close', () => {
+    elemento('estado').textContent = 'Conexão encerrada. Atualize a página para conectar novamente.'
+    elemento('entrar').disabled = true
+    elemento('enviar').disabled = true
+  })
+  conexao.addEventListener('error', () => { elemento('estado').textContent = 'Não foi possível conectar ao servidor.' })
+  elemento('entrada').addEventListener('submit', evento => {
+    evento.preventDefault()
+    const codigo = elemento('codigo').value.trim().toUpperCase()
+    conexao.send(JSON.stringify({ tipo: codigo ? 'entrar' : 'criar', nome: elemento('nome').value.trim(), codigo }))
+  })
+  conexao.addEventListener('message', evento => {
+    const mensagem = JSON.parse(evento.data)
+    if (mensagem.tipo === 'erro') { elemento('estado').textContent = mensagem.texto; return }
+    if (mensagem.tipo === 'sala') {
+      elemento('entrada').hidden = true
+      elemento('sala').hidden = false
+      elemento('estado').textContent = 'Conectado à sala.'
+      elemento('titulo').textContent = `Sala ${mensagem.codigo}`
+      const url = new URL(location.href)
+      url.hash = `sala=${mensagem.codigo}`
+      elemento('convite').value = url.href
+      elemento('jogadores').textContent = `Jogadores (${mensagem.jogadores.length}/2): ${mensagem.jogadores.join(', ')}`
+      elemento('aviso').textContent = mensagem.jogadores.length === 2 ? 'Os dois jogadores estão conectados. Podem trocar mensagens.' : 'Aguardando outro jogador…'
+    }
+    if (mensagem.tipo === 'mensagem') {
+      const linha = document.createElement('li')
+      linha.textContent = `${mensagem.nome}: ${mensagem.texto}`
+      elemento('historico').append(linha)
+      if (elemento('historico').children.length > 100) elemento('historico').firstElementChild.remove()
+      linha.scrollIntoView({ block: 'nearest' })
+    }
+  })
+  elemento('conversa').addEventListener('submit', evento => {
+    evento.preventDefault()
+    conexao.send(JSON.stringify({ tipo: 'mensagem', texto: elemento('texto').value }))
+    elemento('texto').value = ''
+  })
+  elemento('copiar').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(elemento('convite').value); elemento('estado').textContent = 'Link copiado.' }
+    catch { elemento('convite').select(); elemento('estado').textContent = 'Selecionei o link. Use Command + C para copiar.' }
+  })
+</script>
+</html>
