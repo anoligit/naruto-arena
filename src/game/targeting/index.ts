@@ -1,8 +1,9 @@
+import { isIsolatedFrom, isInvulnerableToAlliedSkill } from '../effects/active'
 import { statuses, getActiveStatuses, isInvulnerableToSkill } from '../effects'
 import type { BattleCharacter, BattleState, PlayerId, SkillDefinition } from '../types'
 
 export function isSkillExpanded(state: BattleState, source: BattleCharacter, skill: SkillDefinition): boolean {
-  return skill.target === 'enemy' && skill.targetExpansion?.target === 'all-vulnerable-enemies' &&
+  return skill.target === 'enemy' && (skill.targetExpansion?.target === 'all-vulnerable-enemies' || skill.targetExpansion?.target === 'all-enemies') &&
     (!skill.targetExpansion.whenUserHasStatus || getActiveStatuses(state, source).some((status) => status.statusId === skill.targetExpansion?.whenUserHasStatus))
 }
 
@@ -10,16 +11,17 @@ export function getSkillTargets(
   state: BattleState, playerId: PlayerId, source: BattleCharacter,
   skill: SkillDefinition, primaryTarget: BattleCharacter
 ): BattleCharacter[] {
-  if (skill.targetExpansion?.target === 'all-living-allies') return state.players[playerId].team.filter(member => member.health > 0)
+  if (skill.targetExpansion?.target === 'all-living-allies') return state.players[playerId].team.filter(member => member.health > 0 && !isInvulnerableToAlliedSkill(state, member, skill))
   if (!isSkillExpanded(state, source, skill)) return [primaryTarget]
   const opponentId = playerId === 'player-1' ? 'player-2' : 'player-1'
   return state.players[opponentId].team.filter((target) =>
-    target.health > 0 && !isInvulnerableToSkill(state, target, skill))
+    target.health > 0 && !isIsolatedFrom(state, target, source) && (skill.targetExpansion?.target === 'all-enemies' || !isInvulnerableToSkill(state, target, skill)))
 }
 
 export function describeSkillTarget(state: BattleState, source: BattleCharacter, skill: SkillDefinition): string {
   if (skill.targetExpansion?.target === 'all-living-allies') return 'Todos os aliados vivos, incluindo o próprio usuário'
   if (isSkillExpanded(state, source, skill)) return 'Todos os inimigos vivos e vulneráveis a esta habilidade'
+  if (skill.target === 'ally-or-enemy') return 'Um aliado ou inimigo vivo'
   if (skill.target === 'self-or-enemy') return 'O próprio usuário ou um inimigo vivo e vulnerável'
   if (skill.target === 'self') return 'O próprio usuário'
   if (skill.target === 'ally') return 'Um aliado vivo que possa receber esta habilidade'
@@ -35,7 +37,9 @@ export function getAffectedCharacters(
   const affected = new Map<string, BattleCharacter>()
   const targets = getSkillTargets(state, playerId, source, skill, primaryTarget)
   for (const effect of skill.effects) {
-    const recipients = effect.type === 'apply-status' && effect.recipient === 'user' ? [source] : targets
+    const selfTarget = primaryTarget.instanceId === source.instanceId
+    if ((effect.targetCondition === 'self' && !selfTarget) || (effect.targetCondition === 'other' && selfTarget)) continue
+    const recipients = effect.recipient === 'all-allies' ? state.players[playerId].team.filter(ally => ally.health > 0 && !isInvulnerableToAlliedSkill(state, ally, skill)) : effect.recipient === 'user' ? [source] : targets
     for (const recipient of recipients) {
       if (effect.type === 'apply-status' && effect.skipIfUntargetable && recipient.instanceId !== source.instanceId && isInvulnerableToSkill(state, recipient, skill)) continue
       affected.set(recipient.instanceId, recipient)

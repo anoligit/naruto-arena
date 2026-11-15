@@ -13,8 +13,11 @@ export function applyStatus(effect: Extract<SkillEffect, { type: 'apply-status' 
   if (!['opponent-turns', 'owner-turns', 'permanent'].includes(definition.duration.type) || !Number.isInteger(definition.duration.turns) || (definition.duration.type === 'permanent' ? definition.duration.turns !== 0 : definition.duration.turns < 1) || !definition.modifiers.every(validModifier)) return 'invalid-effect-definition'
   const recipient = effect.recipient === 'user' ? context.source : context.target
   if (effect.skipIfUntargetable && recipient === context.target && isInvulnerableToSkill(context.state, recipient, context.skill)) return null
-  if (definition.modifiers.length > 0 && definition.modifiers.every((modifier) => modifier.type === 'stun') && hasActiveModifier(context.state, recipient, 'stun-immunity')) return null
-  const blockedModifiers: import('./types').StatusModifier['type'][] = []
+  if (!definition.ignoresImmunity && definition.modifiers.length > 0 && definition.modifiers.every((modifier) => modifier.type === 'stun') && hasActiveModifier(context.state, recipient, 'stun-immunity')) return null
+  const recipientOwner = Object.values(context.state.players).find(player => player.team.some(member => member.instanceId === recipient.instanceId))
+  const immune = !definition.ignoresImmunity && recipientOwner?.id !== context.playerId && hasActiveModifier(context.state, recipient, 'harmful-effect-immunity')
+  if (immune && definition.modifiers.every(modifier => modifier.type !== 'periodic-damage' && modifier.type !== 'on-skill-use-damage') && !definition.periodicEffects?.some(effect => effect.type === 'damage' || effect.type === 'steal-health')) return null
+  const blockedModifiers: import('./types').StatusModifier['type'][] = immune ? definition.modifiers.filter(modifier => modifier.type !== 'periodic-damage' && modifier.type !== 'on-skill-use-damage').map(modifier => modifier.type) : []
   if (hasActiveModifier(context.state, recipient, 'prevent-damage-reduction')) {
     blockedModifiers.push('damage-reduction', 'damage-reduction-percent')
   }
@@ -39,10 +42,16 @@ export function applyStatus(effect: Extract<SkillEffect, { type: 'apply-status' 
   const extended = bonus && getActiveStatuses(context.state, recipient).some(active =>
     active.statusId === bonus.whenTargetHasStatus && (!bonus.fromSourceOnly || active.sourceCharacterId === context.source.instanceId))
   const duration = { ...definition.duration, turns: definition.duration.turns + (extended ? bonus.turns : 0) }
+  if (definition.replaces) recipient.statuses = recipient.statuses.filter(active => !definition.replaces!.includes(active.statusId))
+  if (definition.exclusiveToSource) {
+    for (const player of Object.values(context.state.players)) for (const target of player.team) target.statuses = target.statuses.filter(active => active.statusId !== definition.id || active.sourceCharacterId !== context.source.instanceId)
+  }
   recipient.statuses.push({
+    ...(effect.linkTo ? { linkedTargetInstanceId: effect.linkTo === 'source' ? context.source.instanceId : context.selectedTargetInstanceId ?? context.target.instanceId } : {}),
     instanceId: `${context.state.turnNumber}:${context.source.instanceId}:${context.skill.id}:${context.applicationId ?? context.target.instanceId}:${context.effectIndex}`,
     statusId: definition.id, sourcePlayerId: context.playerId, sourceCharacterId: context.source.instanceId, sourceSkillId: context.skill.id,
     ...(definition.modifiers.some(modifier => modifier.type === 'destructible-defense') ? { shieldRemaining: definition.modifiers.reduce((sum, modifier) => modifier.type === 'destructible-defense' ? sum + modifier.amount : sum, 0) } : {}),
+    isPrimaryTarget: context.isPrimaryTarget,
     appliedAt: { turn: context.state.turnNumber, action: context.actionIndex ?? 0, effect: context.effectIndex },
     ...(blockedModifiers.length ? { blockedModifiers } : {}),
     appliedOnUserTurn: context.state.players[context.playerId].turnsStarted,

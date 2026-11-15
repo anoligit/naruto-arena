@@ -1,3 +1,4 @@
+import { isIsolatedFrom, isInvulnerableToAlliedSkill } from './effects/active'
 import { getSkillTargets, isSkillExpanded } from './targeting/index'
 import { getRemainingCooldown } from './cooldown'
 import { characters } from '../data/characters'
@@ -60,7 +61,8 @@ function hasUnknownStatus(character: BattleCharacter): boolean {
 export function validateSkillUse(
   state: BattleState,
   request: SkillUseRequest,
-  now: number = Date.now()
+  now: number = Date.now(),
+  options: { allowBlockedTarget?: boolean } = {}
 ): SkillUseValidation {
   const fail = (reason: SkillUseError): SkillUseValidation => ({ ok: false, reason })
 
@@ -77,10 +79,12 @@ export function validateSkillUse(
   if (character.lastSkillUsedOnTurn === player.turnsStarted) return fail('already-acted')
   if (hasUnknownStatus(character)) return fail('unknown-status')
 
-  const definition = characters.find((definition) => definition.id === character.characterId)
+  const definition = (character.copiedSkill?.id === request.skillId ? character.copiedSkill : undefined) ?? characters.find((definition) => definition.id === character.characterId)
     ?.skillDefinitions?.find((definition) => definition.id === request.skillId)
   if (!definition) return fail('skill-not-found')
   const skill = getEffectiveSkill(state, character, definition)
+  if (skill.implementationPending || (skill.maxUserHealth !== undefined && character.health > skill.maxUserHealth)) return fail('requirements-not-met')
+  if (skill.maxUses !== undefined && (character.skillUses?.[skill.id] ?? 0) >= skill.maxUses) return fail('requirements-not-met')
   if (isStunnedForSkill(state, character, skill)) return fail('stunned')
   if (getRemainingCooldown(character.skillReadyOnTurn[skill.id], player.turnsStarted) > 0) {
     return fail('cooldown')
@@ -88,6 +92,9 @@ export function validateSkillUse(
 
   for (const requirement of skill.requirements ?? []) {
     switch (requirement.type) {
+      case 'lacks-status':
+        if (getActiveStatuses(state, character).some(status => status.statusId === requirement.statusId)) return fail('requirements-not-met')
+        break
       case 'has-status':
         if (!getActiveStatuses(state, character).some((status) => status.statusId === requirement.statusId)) {
           return fail('requirements-not-met')
@@ -116,10 +123,13 @@ export function validateSkillUse(
     (skill.target === 'ally' && !alliedTarget) ||
     (skill.target === 'self-or-enemy' && target.instanceId !== character.instanceId && !enemyTarget)
   ) return fail('invalid-target')
+  if (isIsolatedFrom(state, target, character)) return fail('target-invulnerable')
   if (hasUnknownStatus(target)) return fail('unknown-status')
+  if (skill.targetMustHaveStatus && !getActiveStatuses(state, target).some(active => active.statusId === skill.targetMustHaveStatus!.statusId && (!skill.targetMustHaveStatus!.fromSourceOnly || active.sourceCharacterId === character.instanceId))) return fail('requirements-not-met')
   if (skill.targetMustLackStatus && getActiveStatuses(state, target).some(active => active.statusId === skill.targetMustLackStatus)) return fail('target-already-affected')
-  if (enemyTarget && isInvulnerableToSkill(state, target, skill) &&
-    (!skill.allowInvulnerableTarget || isSkillExpanded(state, character, skill))) return fail('target-invulnerable')
+  if (!options.allowBlockedTarget && alliedTarget && !skill.allowInvulnerableTarget && isInvulnerableToAlliedSkill(state, target, skill)) return fail('target-invulnerable')
+  if (!options.allowBlockedTarget && enemyTarget && isInvulnerableToSkill(state, target, skill) &&
+    (!skill.allowInvulnerableTarget || (isSkillExpanded(state, character, skill) && skill.targetExpansion?.target !== 'all-enemies'))) return fail('target-invulnerable')
   if (getSkillTargets(state, request.playerId, character, skill, target).some(hasUnknownStatus)) return fail('unknown-status')
 
   const energyAfterPayment = paySkillCost(player.energy, skill.cost, request.randomPayment)

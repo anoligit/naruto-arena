@@ -155,9 +155,9 @@ test('Both Kakashis stay distinct when Raikiri and a Zabuza attack hit the same 
       assert.equal(state.counterReports.length, 2)
       assert(state.counterReports.every(report => report.counterCharacterId === member(state, 'player-2', 'kakashi').instanceId))
       const indicator = reportsFor(state, 'kakashi', 'player-1')[0]
-      assert(indicator.lines.some(line => line.includes('Habilidade counterada: Raikiri de Hatake Kakashi · Jogador 1')))
-      assert(indicator.lines.some(line => line.includes('Destino do retorno: Hatake Kakashi · Jogador 1')))
-      assert(indicator.lines.some(line => line.includes('Alvo original: Hatake Kakashi · Jogador 2')))
+      assert(indicator.lines.some(line => line.includes('Habilidade counterada: Raikiri de Hatake Kakashi OLD · Jogador 1')))
+      assert(indicator.lines.some(line => line.includes('Destino do retorno: Hatake Kakashi OLD · Jogador 1')))
+      assert(indicator.lines.some(line => line.includes('Alvo original: Hatake Kakashi OLD · Jogador 2')))
     }
   }
 })

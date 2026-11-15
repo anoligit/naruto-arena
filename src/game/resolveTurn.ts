@@ -1,3 +1,4 @@
+import { applyHealthPassives } from './effects/passives'
 import { executeSkillEffects } from './effects/execution'
 import { collectPeriodicDamage } from './effects/periodic'
 import { isValidCooldown, getCooldownReadyTurn } from './cooldown'
@@ -50,7 +51,10 @@ export function resolveTurn(
   const damageEvents: DamageEvent[] = []
 
   for (const [actionIndex, request] of actions.entries()) {
-    const validation = validateSkillUse(working, request, now)
+    let validation = validateSkillUse(working, request, now)
+    if (!validation.ok && validation.reason === 'target-invulnerable' && validateSkillUse(state, request, now).ok) {
+      validation = validateSkillUse(working, request, now, { allowBlockedTarget: true })
+    }
     if (!validation.ok) {
       return { ok: false, state, reason: validation.reason, actionIndex }
     }
@@ -69,6 +73,7 @@ export function resolveTurn(
     const activeBefore = getActiveStatuses(working, source)
     player.energy = validation.energyAfterPayment
     source.lastSkillUsedOnTurn = player.turnsStarted
+    source.skillUses = { ...source.skillUses, [skill.id]: (source.skillUses?.[skill.id] ?? 0) + 1 }
     source.skillReadyOnTurn[skill.id] = getCooldownReadyTurn(player.turnsStarted, skill.cooldown)
 
     const error = executeSkillEffects({ state: working, playerId: player.id, source, target, skill, actionIndex, damageEvents, random: options.random })
@@ -79,8 +84,9 @@ export function resolveTurn(
     }
   }
 
-  damageEvents.push(...collectPeriodicDamage(working))
+  damageEvents.push(...collectPeriodicDamage(working, options.random))
   const damageResults = settleTurnDamage(working, damageEvents)
+  applyHealthPassives(working)
   // Source-dependent effects end on death even when this damage ends the match.
   for (const owner of Object.values(working.players)) {
     for (const member of owner.team) member.statuses = getActiveStatuses(working, member)

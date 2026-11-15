@@ -1,4 +1,7 @@
-import { statuses, hasStatusExpired } from './effects'
+import { applyHealthPassives } from './effects/passives'
+import { collectExpiringDamage } from './effects/expiry'
+import { settleTurnDamage } from './effects/damage'
+import { statuses, hasStatusExpired, getActiveStatuses } from './effects'
 import { TURN_DURATION_MS } from './rules'
 import { receiveTurnEnergy } from './energy/index'
 import type {
@@ -16,6 +19,13 @@ export function advanceTurn(
     return state
   }
 
+  state = structuredClone(state)
+  settleTurnDamage(state, collectExpiringDamage(state))
+  for (const player of Object.values(state.players)) {
+    for (const member of player.team) member.statuses = getActiveStatuses(state, member)
+  }
+
+  applyHealthPassives(state)
   const firstTeamAlive = state.players['player-1'].team.some(
     (character) => character.health > 0
   )

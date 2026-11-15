@@ -82,3 +82,5 @@ export function renderMobileConfirmation(battle: BattleState) {
     remaining: 42, mobile: true, available: empty, freeTotal: 0, review, onReady: () => {}, onExchange: () => {},
   }))
 }
+
+export { expireTurn } from '../src/game/turnTimer'

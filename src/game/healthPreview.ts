@@ -1,3 +1,5 @@
+import { collectExpiringDamage } from './effects/expiry'
+import { settleTurnDamage } from './effects/damage'
 import { statuses, isStatusVisible } from './effects'
 import { buildConfirmedActions, getQueueBudget } from './plannedActions'
 import type { PlannedAction } from './plannedActions'
@@ -15,7 +17,7 @@ export function visibleBattleForPreview(battle: BattleState, viewerId: PlayerId)
     for (const member of player.team) {
       member.statuses = member.statuses.filter((active) => {
         const definition = statuses.find((entry) => entry.id === active.statusId)
-        return definition !== undefined && isStatusVisible(definition, active, viewerId)
+        return definition !== undefined && isStatusVisible(definition, active, viewerId, battle)
       })
     }
   }
@@ -42,8 +44,9 @@ export function previewTurnHealth(
   }
   const actions = buildConfirmedActions(visible, queue, payment)
   if (!actions) return null
-  const result = resolveTurn(visible, actions, now, { advanceToNextTurn: false })
+  const result = resolveTurn(visible, actions, now, { advanceToNextTurn: false, random: () => 0 })
   if (!result.ok) return null
+  settleTurnDamage(result.state, collectExpiringDamage(result.state))
 
   const preview: HealthPreview = {}
   for (const player of Object.values(battle.players)) {

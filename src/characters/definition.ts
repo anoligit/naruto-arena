@@ -32,7 +32,7 @@ export type CharacterModule = {
 }
 
 export function getBaseSkills(character: Character): SkillDefinition[] {
-  return character.skillDefinitions.filter((skill) => !skill.replacement)
+  return character.skillDefinitions.filter((skill) => !skill.replacement && !skill.passive)
 }
 
 // O motor recebe os catálogos; o autor edita somente os blocos do personagem.

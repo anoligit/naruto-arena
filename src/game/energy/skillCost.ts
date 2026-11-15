@@ -1,4 +1,5 @@
-import { getActiveStatuses } from '../effects/active'
+import { isHarmfulSkill } from '../skillKinds'
+import { getActiveStatuses, getActiveModifiers } from '../effects/active'
 import { getAppliedModifiers } from '../effects/appliedModifiers'
 import { matchesSkillClasses } from '../classes'
 import type { ActiveStatus, BattleCharacter, BattleState, EnergyCost, SkillDefinition, StatusModifier } from '../types'
@@ -31,11 +32,13 @@ export function getEnemyCostEffects(state: BattleState, user: BattleCharacter): 
 }
 
 export function getEffectiveEnergyCost(state: BattleState, user: BattleCharacter, skill: SkillDefinition): EnergyCost {
-  let additional = 0
+  let additional = getActiveModifiers(state, user).reduce((sum, modifier) => modifier.type === 'skill-cost-increase' && (!modifier.scope || (modifier.scope === 'harmful' ? isHarmfulSkill(skill) : !isHarmfulSkill(skill))) ? sum + modifier.random : sum, 0)
   for (const effect of getEnemyCostEffects(state, user)) {
     for (const modifier of effect.modifiers) {
       if (matchesSkillClasses(skill.classes, modifier.classes)) additional += modifier.random
     }
   }
+  additional -= getActiveModifiers(state, user).reduce((sum, modifier) => modifier.type === 'skill-cost-reduction' && (!modifier.scope || isHarmfulSkill(skill)) ? sum + modifier.random : sum, 0)
+  additional = Math.max(-(skill.cost.random ?? 0), additional)
   return additional === 0 ? skill.cost : { ...skill.cost, random: (skill.cost.random ?? 0) + additional }
 }

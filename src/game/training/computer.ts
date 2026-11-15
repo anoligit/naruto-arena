@@ -30,16 +30,40 @@ function choosePayment(battle: BattleState, queue: readonly PlannedAction[]): En
 // Valor aproximado para decisões da IA; não altera nenhuma regra do combate.
 function modifierValue(modifier: StatusModifier): number {
   switch (modifier.type) {
+    case 'on-harmful-skill-heal-source': return -modifier.amount * .5
+    case 'on-source-harmful-hit': return -6
+    case 'skill-cost-increase': return -modifier.random * 6
+    case 'outgoing-damage-reduction-percent': return -modifier.percent * .1
+    case 'isolated': return 6
+    case 'life-link': return -8
+    case 'healing-bonus': return modifier.amount * .4
+    case 'incoming-damage-cap': return 8
+    case 'cooldown-increase': return -modifier.amount * 4
+    case 'ignore-healing': return -5
+    case 'skill-cost-reduction': return modifier.random * 5
+    case 'on-targeted-harmful': return 6
+    case 'counter-skill-use': return -8
+    case 'ignore-defenses': return -12
+    case 'cannot-die': return 10
+    case 'reveal-enemy-invisible': return 5
+    case 'on-skill-use': return -5
+    case 'on-ally-targeted-hit': return -4
+    case 'on-source-skill-use-heal': return modifier.amount * .4
+    case 'on-enemy-target-team': return modifier.amount * .8
     case 'stun': return -10
     case 'counter-first-harmful': return 8
     case 'destructible-defense': return modifier.amount * .3
     case 'on-harmful-skill': return -4
+    case 'outgoing-damage-bonus': return modifier.amount * .5
     case 'outgoing-damage-reduction': return -modifier.amount
     case 'periodic-damage': return -modifier.amount
     case 'prevent-damage-reduction': return -4
     case 'prevent-invulnerability': return -5
     case 'invulnerable': return 6
     case 'reflect': return 7
+    case 'on-new-skill-damage': return 6
+    case 'damage-immunity': return 10
+    case 'harmful-effect-immunity': return 8
     case 'stun-immunity': return 4
     case 'damage-reduction': return modifier.amount * 0.3
     case 'damage-reduction-percent': return modifier.percent * 0.2

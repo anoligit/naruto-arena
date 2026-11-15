@@ -1,10 +1,11 @@
+import { isDefensiveModifier } from './protection'
 import { characters } from '../../data/characters'
 import { formatSkillClasses } from '../classes'
 import { getEnemyCostEffects } from '../energy/skillCost'
 import { getPlannedTargets, skillForAction } from '../plannedActions'
 import type { PlannedAction } from '../plannedActions'
 import type { BattleCharacter, BattleState, PlayerId } from '../types'
-import { getActiveStatuses, isActionSuppressed } from './active'
+import { hasActiveModifier, getActiveStatuses, isActionSuppressed } from './active'
 import { getAppliedModifiers } from './appliedModifiers'
 import { statuses } from './catalog'
 import { isCounterReportVisible } from './counters'
@@ -41,7 +42,7 @@ export function getCharacterIndicators(
 
   function fromStatus(active: ActiveStatus, auraLines?: string[]): CharacterIndicator | null {
     const definition = statuses.find((entry) => entry.id === active.statusId)
-    if (!isStatusVisible(definition, active, viewerId)) return null
+    if (!isStatusVisible(definition, active, viewerId, battle)) return null
     const source = members.find((entry) => entry.instanceId === active.sourceCharacterId)
     const sourceDefinition = characters.find((entry) => entry.id === source?.characterId)
     const skills = sourceDefinition?.skillDefinitions ?? []
@@ -50,6 +51,7 @@ export function getCharacterIndicators(
     const lines = auraLines ?? (definition
       ? describeStatusEffect({ ...definition, modifiers: getAppliedModifiers(active) }, skills)
       : ['Efeito ativo.'])
+    if (!auraLines && getAppliedModifiers(active).some(isDefensiveModifier) && hasActiveModifier(battle, member, 'ignore-defenses')) lines.push('Defesa temporariamente suspensa: este personagem está ignorando efeitos defensivos.')
     if (!auraLines && active.blockedModifiers?.includes('invulnerable')) {
       lines.push('A invulnerabilidade desta aplicação foi impedida; os demais efeitos permanecem ativos.')
     }
