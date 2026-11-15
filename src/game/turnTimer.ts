@@ -1,3 +1,5 @@
+import { collectPeriodicDamage } from './effects/periodic'
+import { settleTurnDamage } from './effects/damage'
 import { advanceTurn } from './advanceTurn'
 import type { BattleState } from './types'
 
@@ -27,5 +29,7 @@ export function expireTurn(
     return state
   }
 
-  return advanceTurn(state, now)
+  const working = structuredClone(state)
+  settleTurnDamage(working, collectPeriodicDamage(working))
+  return advanceTurn(working, now)
 }

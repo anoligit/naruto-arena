@@ -1,6 +1,6 @@
 import { characters } from '../../data/characters'
 import { statuses } from './catalog'
-import { getActiveStatuses, hasActiveModifier, isInvulnerableToSkill } from './active'
+import { getActiveStatuses, hasActiveModifier, isInvulnerableToSkill, isActionSuppressed } from './active'
 import { recordCounter } from './counters'
 import { getAppliedModifiers } from './appliedModifiers'
 import { validModifier } from './validation'
@@ -10,14 +10,19 @@ import type { SkillEffect, EffectContext, EffectError } from './types'
 export function applyStatus(effect: Extract<SkillEffect, { type: 'apply-status' }>, context: EffectContext): EffectError | null {
   const definition = statuses.find((entry) => entry.id === effect.statusId)
   if (!definition) return 'unknown-status-definition'
-  if (!['opponent-turns', 'owner-turns'].includes(definition.duration.type) || !Number.isInteger(definition.duration.turns) || definition.duration.turns < 1 || !definition.modifiers.every(validModifier)) return 'invalid-effect-definition'
+  if (!['opponent-turns', 'owner-turns', 'permanent'].includes(definition.duration.type) || !Number.isInteger(definition.duration.turns) || (definition.duration.type === 'permanent' ? definition.duration.turns !== 0 : definition.duration.turns < 1) || !definition.modifiers.every(validModifier)) return 'invalid-effect-definition'
   const recipient = effect.recipient === 'user' ? context.source : context.target
   if (effect.skipIfUntargetable && recipient === context.target && isInvulnerableToSkill(context.state, recipient, context.skill)) return null
-  if (definition.modifiers.every((modifier) => modifier.type === 'stun') && hasActiveModifier(context.state, recipient, 'stun-immunity')) return null
+  if (definition.modifiers.length > 0 && definition.modifiers.every((modifier) => modifier.type === 'stun') && hasActiveModifier(context.state, recipient, 'stun-immunity')) return null
+  const blockedModifiers: import('./types').StatusModifier['type'][] = []
+  if (hasActiveModifier(context.state, recipient, 'prevent-damage-reduction')) {
+    blockedModifiers.push('damage-reduction', 'damage-reduction-percent')
+  }
   const prevention = definition.modifiers.some((modifier) => modifier.type === 'invulnerable')
-    ? getActiveStatuses(context.state, recipient).find((active) => getAppliedModifiers(active).some((modifier) => modifier.type === 'prevent-invulnerability'))
+    ? getActiveStatuses(context.state, recipient).find((active) => !isActionSuppressed(context.state, recipient, active) && getAppliedModifiers(active).some((modifier) => modifier.type === 'prevent-invulnerability'))
     : undefined
   const blocksInvulnerability = prevention !== undefined
+  if (blocksInvulnerability) blockedModifiers.push('invulnerable')
   if (prevention) {
     recordCounter(context.state, context.source, context.skill, prevention, recipient.instanceId,
       'prevented-invulnerability', context.actionIndex ?? 0, context.effectIndex)
@@ -29,13 +34,19 @@ export function applyStatus(effect: Extract<SkillEffect, { type: 'apply-status' 
     skill.enhancement?.whenUserHasStatus === definition.id ||
     skill.replacement?.whenStatusId === definition.id)
   if (blocksInvulnerability && !grantsSkillChanges && definition.modifiers.every((modifier) => modifier.type === 'invulnerable')) return null
+  const bonus = effect.durationBonus
+  if (bonus && (!Number.isInteger(bonus.turns) || bonus.turns < 0)) return 'invalid-effect-definition'
+  const extended = bonus && getActiveStatuses(context.state, recipient).some(active =>
+    active.statusId === bonus.whenTargetHasStatus && (!bonus.fromSourceOnly || active.sourceCharacterId === context.source.instanceId))
+  const duration = { ...definition.duration, turns: definition.duration.turns + (extended ? bonus.turns : 0) }
   recipient.statuses.push({
     instanceId: `${context.state.turnNumber}:${context.source.instanceId}:${context.skill.id}:${context.applicationId ?? context.target.instanceId}:${context.effectIndex}`,
     statusId: definition.id, sourcePlayerId: context.playerId, sourceCharacterId: context.source.instanceId, sourceSkillId: context.skill.id,
+    ...(definition.modifiers.some(modifier => modifier.type === 'destructible-defense') ? { shieldRemaining: definition.modifiers.reduce((sum, modifier) => modifier.type === 'destructible-defense' ? sum + modifier.amount : sum, 0) } : {}),
     appliedAt: { turn: context.state.turnNumber, action: context.actionIndex ?? 0, effect: context.effectIndex },
-    ...(blocksInvulnerability ? { blockedModifiers: ['invulnerable' as const] } : {}),
+    ...(blockedModifiers.length ? { blockedModifiers } : {}),
     appliedOnUserTurn: context.state.players[context.playerId].turnsStarted,
-    expiration: createStatusExpiration(context.state, context.playerId, definition),
+    expiration: createStatusExpiration(context.state, context.playerId, { ...definition, duration }),
   })
   return null
 }

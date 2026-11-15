@@ -1,0 +1,58 @@
+/* Perfil da batalha: resumo acima, equipe e conquistas abaixo. */
+.battle-player-details {
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.battle-profile-summary {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: 4px 12px;
+  padding: 8px;
+  border: 1px solid #b6a174;
+  border-radius: 7px;
+}
+.battle-profile-avatar { grid-row: 1 / span 2; align-self: start; }
+.battle-profile-avatar img, .battle-profile-avatar svg {
+  display: block;
+  width: 80px;
+  height: 80px;
+  border: 1px solid #29231b;
+  object-fit: cover;
+  background: #e8ddbf;
+}
+.battle-profile-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.battle-profile-heading h3 { margin: 0; color: #b51d23; font-size: 22px; line-height: 1.05; overflow-wrap: anywhere; }
+.battle-profile-level { flex-shrink: 0; padding: 3px 8px; border: 1px solid #b6a174; border-radius: 4px; background: #f4e3b5; font-size: 14px; }
+.battle-profile-facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; margin: 0; font-size: 11px; line-height: 1.25; }
+.battle-profile-facts > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; padding: 3px 5px; border-top: 1px solid #b6a174; min-width: 0; }
+.battle-profile-facts .battle-profile-clan { grid-column: 1 / -1; background: #f4e3b566; }
+.battle-profile-facts dd { margin: 0; overflow-wrap: anywhere; }
+.battle-profile-facts dt { white-space: nowrap; }
+.battle-profile-bottom { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 8px; }
+.profile-battle-team, .battle-profile-achievements { border: 1px solid #b6a174; border-radius: 7px; padding: 6px 8px; min-width: 0; }
+.profile-battle-team { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.battle-profile-bottom h4 { margin: 0; font-size: 12px; }
+.profile-battle-team button { width: 48px; height: 48px; flex: 0 1 48px; aspect-ratio: 1; padding: 0; border: 1px solid #29231b; background: #e8ddbf; }
+.profile-battle-team img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.battle-profile-achievements { display: grid; align-content: center; justify-items: center; gap: 6px; text-align: center; }
+.battle-profile-achievements p { margin: 0; font-size: 11px; color: #655539; }
+
+@media (max-width: 720px) {
+  .battle-profile-summary { grid-template-columns: 64px minmax(0, 1fr); gap: 5px 8px; padding: 6px; }
+  .battle-profile-avatar img, .battle-profile-avatar svg { width: 64px; height: 64px; }
+  .battle-profile-heading h3 { font-size: 18px; }
+  .battle-profile-level { font-size: 12px; padding: 2px 5px; }
+  .battle-profile-facts { font-size: 10px; }
+  .battle-profile-facts > div { padding: 3px; }
+  .battle-profile-bottom { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 6px; }
+  .profile-battle-team { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .profile-battle-team h4 { grid-column: 1 / -1; }
+  .profile-battle-team button { width: 100%; height: auto; }
+  .battle-profile-bottom h4 { font-size: 11px; }
+}

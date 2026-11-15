@@ -41,3 +41,44 @@ import StartPlaying from '../src/pages/StartPlaying'
 export function renderSelection(team: (Character | null)[]) {
   return renderToStaticMarkup(createElement(StartPlaying, { team, setTeam: () => {} }))
 }
+import type { LocalBattleSession } from '../src/game/localBattleSession'
+import type { PlayerId } from '../src/game/types'
+export { publicSessionFor } from '../src/multiplayer/publicSession'
+export { multiplayerVersion } from '../src/multiplayer/version'
+export function renderRemoteBattle(session: LocalBattleSession, playerId: PlayerId) {
+  return renderToStaticMarkup(createElement(LocalBattle, { initialState: session.battle, mode: 'private', onContinue: () => {},
+    remote: { playerId, session, send: () => {}, names: { 'player-1': 'Ana', 'player-2': 'Bruno' }, code: 'ABC234' },
+  }))
+}
+
+import BattleInspectionPanel from '../src/pages/BattleInspection'
+import type { BattleInspection } from '../src/pages/BattleInspection'
+import type { BattleProfiles } from '../src/player/battleProfiles'
+export { createBattleProfile } from '../src/player/battleProfiles'
+export function renderBattleInspection(state: BattleState, inspection: BattleInspection, profiles: BattleProfiles) {
+  return renderToStaticMarkup(createElement(BattleInspectionPanel, { battle: state, inspection, profiles, onCharacter: () => {}, onSkill: () => {} }))
+}
+
+import BattleTurnControls from '../src/pages/BattleTurnControls'
+export function renderTurnControls(opponentTurn: boolean, remaining: number, mobile = false) {
+  return renderToStaticMarkup(createElement(BattleTurnControls, { phase: 'planning', opponentTurn, remaining, mobile,
+    available: { taijutsu: 2, bloodline: 1, ninjutsu: 0, genjutsu: 3 }, freeTotal: 6, onReady: () => {}, onExchange: () => {},
+  }))
+}
+
+import TurnConfirmationContent from '../src/pages/TurnConfirmationContent'
+export function renderTurnConfirmation(battle: BattleState, queue: PlannedAction[], payment: EnergyPool) {
+  return renderToStaticMarkup(createElement(TurnConfirmationContent, { battle, queue, payment, remaining: 42,
+    headingRef: { current: null }, onChange: () => {}, onMove: () => {}, onCancel: () => {}, onConfirm: () => {},
+  }))
+}
+
+export function renderMobileConfirmation(battle: BattleState) {
+  const empty = { taijutsu: 0, ninjutsu: 0, bloodline: 0, genjutsu: 0 }
+  const review = createElement(TurnConfirmationContent, { battle, queue: [], payment: empty, remaining: 42,
+    showTimer: false, headingRef: { current: null }, onChange: () => {}, onMove: () => {}, onCancel: () => {}, onConfirm: () => {},
+  })
+  return renderToStaticMarkup(createElement(BattleTurnControls, { phase: 'confirmation', opponentTurn: false,
+    remaining: 42, mobile: true, available: empty, freeTotal: 0, review, onReady: () => {}, onExchange: () => {},
+  }))
+}

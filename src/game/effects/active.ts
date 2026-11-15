@@ -9,6 +9,7 @@ import type { ActiveStatus, StatusModifier } from './types'
 export function getActiveStatuses(state: BattleState, character: BattleCharacter): ActiveStatus[] {
   return character.statuses.filter((active) => {
     const definition = statuses.find((entry) => entry.id === active.statusId)
+    if (active.shieldRemaining === 0 && definition?.modifiers.every(modifier => modifier.type === 'destructible-defense')) return false
     const source = Object.values(state.players).flatMap((owner) => owner.team)
       .find((member) => member.instanceId === active.sourceCharacterId)
     if (definition?.endsWhenSourceDies && (!source || source.health <= 0)) return false
@@ -25,7 +26,17 @@ export function getActiveStatuses(state: BattleState, character: BattleCharacter
 }
 
 export function getActiveModifiers(state: BattleState, character: BattleCharacter): StatusModifier[] {
-  return getActiveStatuses(state, character).flatMap(getAppliedModifiers)
+  return getActiveStatuses(state, character).filter(active => !isActionSuppressed(state, character, active)).flatMap(getAppliedModifiers)
+}
+
+// Action fica suspenso sem apagar o efeito nem prolongar sua duração.
+export function isActionSuppressed(state: BattleState, target: BattleCharacter, active: ActiveStatus): boolean {
+  if (!statuses.find(entry => entry.id === active.statusId)?.action) return false
+  const source = Object.values(state.players).flatMap(player => player.team).find(member => member.instanceId === active.sourceCharacterId)
+  if (!source || source.health <= 0) return true
+  const skill = characters.find(entry => entry.id === source.characterId)?.skillDefinitions.find(entry => entry.id === active.sourceSkillId)
+  return isStunnedByModifiers(getActiveStatuses(state, source).flatMap(getAppliedModifiers), skill) ||
+    isInvulnerableByModifiers(target.statuses.flatMap(getAppliedModifiers), skill)
 }
 
 export function hasActiveModifier(state: BattleState, character: BattleCharacter, type: StatusModifier['type']): boolean {

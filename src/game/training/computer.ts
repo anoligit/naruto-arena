@@ -31,6 +31,12 @@ function choosePayment(battle: BattleState, queue: readonly PlannedAction[]): En
 function modifierValue(modifier: StatusModifier): number {
   switch (modifier.type) {
     case 'stun': return -10
+    case 'counter-first-harmful': return 8
+    case 'destructible-defense': return modifier.amount * .3
+    case 'on-harmful-skill': return -4
+    case 'outgoing-damage-reduction': return -modifier.amount
+    case 'periodic-damage': return -modifier.amount
+    case 'prevent-damage-reduction': return -4
     case 'prevent-invulnerability': return -5
     case 'invulnerable': return 6
     case 'reflect': return 7

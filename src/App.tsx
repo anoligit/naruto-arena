@@ -6,7 +6,7 @@ import './App.css'
 
 type Page = 'startpage' | 'start-playing' | 'game'
 const readPage = (): Page => {
-  if (window.location.hash === '#game') return 'game'
+  if (window.location.hash.split('?')[0] === '#game') return 'game'
   if (window.location.hash === '#start-playing') return 'start-playing'
   return 'startpage'
 }

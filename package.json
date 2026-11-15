@@ -8,7 +8,13 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node tests/run.mjs"
+    "test": "node tests/run.mjs",
+    "server:build": "node server/build.mjs",
+    "server:start": "node server/start.mjs",
+    "server:dev": "npm run server:build && npm run server:start",
+    "test:multiplayer": "npm run server:build && node server/test.mjs",
+    "online:build": "npm run build && npm run server:build",
+    "online": "npm run online:build && npm run server:start"
   },
   "dependencies": {
     "react": "^19.3.1",

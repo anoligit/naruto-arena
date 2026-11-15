@@ -12,7 +12,7 @@ export type SkillTarget = 'self' | 'enemy' | 'ally' | 'self-or-enemy'
 // Condição para ampliar o alvo: sem status, vale em todo uso.
 export type SkillTargetExpansion = {
   whenUserHasStatus?: string
-  target: 'all-vulnerable-enemies'
+  target: 'all-vulnerable-enemies' | 'all-living-allies'
 }
 
 // Melhoria aplicada somente enquanto o status estiver ativo no próprio usuário.
@@ -35,6 +35,8 @@ export type SkillDefinition = {
   classes: SkillClass[]
   requirements?: SkillCondition[]
   effects: SkillEffect[]
+  cannotBeCountered?: boolean
+  targetMustLackStatus?: string
   allowInvulnerableTarget?: boolean
   replacement?: { skillId: string; whenStatusId: string }
 }

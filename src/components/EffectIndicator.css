@@ -10,7 +10,7 @@
   border: 1px solid #111;
   background: #f4e9c7;
   color: #111;
-  font: 12px/1.4 Arial, Helvetica, sans-serif;
+  font: 700 12px/1.4 var(--game-font);
   text-align: left;
   overflow-wrap: anywhere;
   overflow: auto;

@@ -1,0 +1,24 @@
+.online-room {
+  max-width: 680px;
+  margin: 50px auto;
+  padding: 30px;
+  border: 2px solid #70582a;
+  background: #f4e9c7;
+  color: #222;
+  font: 700 14px/1.5 var(--game-font);
+}
+.online-room h1 { color: #b51d23; }
+.online-room form > label { display: grid; gap: 6px; margin: 16px 0; }
+.online-room input:not([type='radio']), .online-room select { padding: 9px; font: inherit; border: 1px solid #70582a; }
+.online-room button { padding: 8px 14px; border: 1px solid #65542f; background: #fff6d9; cursor: pointer; }
+.online-room button:disabled { opacity: .5; cursor: wait; }
+.online-options { display: flex; gap: 20px; }
+.room-code { display: block; font-size: 32px; letter-spacing: 5px; user-select: all; }
+.online-error { position: fixed; top: 10px; right: 10px; max-width: 360px; z-index: 100; padding: 12px; background: #fff6db; border: 2px solid #b42328; color: #222; font: 700 14px/1.4 var(--game-font); }
+.online-error button { margin-left: 10px; }
+
+/* Campos pequenos podem ampliar a página ao receber foco no celular. */
+@media (max-width: 720px) {
+  .online-room { margin: 16px 8px; padding: 20px; }
+  .online-room input:not([type='radio']), .online-room select { min-width: 0; max-width: 100%; font-size: 16px; }
+}

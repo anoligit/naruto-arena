@@ -1,8 +1,9 @@
 // Cadastro único dos quatro tipos que podem existir na reserva de energia.
+// Paleta da referência, convertida de Display P3 para sRGB (cores CSS).
 export const energyDefinitions = {
-  bloodline: { name: 'Bloodline', color: '#ff0000' },
-  ninjutsu: { name: 'Ninjutsu', color: '#00a2cd' },
-  taijutsu: { name: 'Taijutsu', color: '#00dc32' },
+  bloodline: { name: 'Bloodline', color: '#f0000a' },
+  ninjutsu: { name: 'Ninjutsu', color: '#01a9d5' },
+  taijutsu: { name: 'Taijutsu', color: '#06dd2d' },
   genjutsu: { name: 'Genjutsu', color: '#ffffff' },
 } as const
 

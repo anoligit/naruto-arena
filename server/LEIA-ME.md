@@ -1,5 +1,7 @@
 # Sala de teste
 
+Para o jogo completo com combate online, veja [ONLINE.md](ONLINE.md). Este arquivo descreve apenas o exercício anterior.
+
 Este teste usa apenas `salas.mjs` e `sala.html`. Não altera o jogo e ainda não executa combate.
 
 ## Testar no Mac

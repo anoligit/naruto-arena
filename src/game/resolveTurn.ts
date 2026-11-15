@@ -1,10 +1,10 @@
-import { recordCounter } from './effects/counters'
-import { getSkillTargets } from './targeting/index'
+import { executeSkillEffects } from './effects/execution'
+import { collectPeriodicDamage } from './effects/periodic'
 import { isValidCooldown, getCooldownReadyTurn } from './cooldown'
 import { advanceTurn } from './advanceTurn'
 import { expireTurn } from './turnTimer'
-import { getActiveStatuses, getSkillReflection } from './effects'
-import { applySkillEffect, settleTurnDamage, triggerSkillUseDamage } from './effects'
+import { getActiveStatuses } from './effects'
+import { settleTurnDamage, triggerSkillUseDamage } from './effects'
 import type { DamageEvent, DamageResult, EffectError } from './effects'
 import { validateSkillUse } from './validateSkillUse'
 import type { SkillUseError, SkillUseRequest } from './validateSkillUse'
@@ -31,7 +31,7 @@ export function resolveTurn(
   state: BattleState,
   actions: readonly SkillUseRequest[],
   now: number = Date.now(),
-  options: { advanceToNextTurn?: boolean } = {}
+  options: { advanceToNextTurn?: boolean; random?: () => number } = {}
 ): TurnResolution {
   if (state.phase === 'finished') {
     return { ok: false, state, reason: 'battle-finished', actionIndex: null }
@@ -66,43 +66,20 @@ export function resolveTurn(
     const target = Object.values(working.players).flatMap((owner) => owner.team)
       .find((character) => character.instanceId === request.targetInstanceId)!
 
-    const targets = getSkillTargets(working, player.id, source, skill, target)
     const activeBefore = getActiveStatuses(working, source)
     player.energy = validation.energyAfterPayment
     source.lastSkillUsedOnTurn = player.turnsStarted
     source.skillReadyOnTurn[skill.id] = getCooldownReadyTurn(player.turnsStarted, skill.cooldown)
 
-    const appliedSelfEffects = new Set<number>()
-    for (const affectedTarget of targets) {
-      const { reflected, blockedReflection, counter } = getSkillReflection(working, source, affectedTarget, skill)
-      if (counter) {
-        const outcome = skill.classes.includes('control') ? 'cancelled' : blockedReflection ? 'return-blocked' : 'reflected'
-        recordCounter(working, source, skill, counter, affectedTarget.instanceId, outcome, actionIndex, -1)
-      }
-      for (const [effectIndex, effect] of (blockedReflection ? [] : skill.effects).entries()) {
-        const appliesToUser = effect.type === 'apply-status' && effect.recipient === 'user'
-        if (appliesToUser && appliedSelfEffects.has(effectIndex)) continue
-        const error = applySkillEffect(effect, {
-          state: working,
-          playerId: reflected && !appliesToUser ? (player.id === 'player-1' ? 'player-2' : 'player-1') : player.id,
-          source,
-          target: reflected ? source : affectedTarget,
-          applicationId: affectedTarget.instanceId,
-          actionIndex,
-          skill,
-          effectIndex,
-          damageEvents,
-        })
-        if (error) return { ok: false, state, reason: error, actionIndex }
-        if (appliesToUser) appliedSelfEffects.add(effectIndex)
-      }
-    }
+    const error = executeSkillEffects({ state: working, playerId: player.id, source, target, skill, actionIndex, damageEvents, random: options.random })
+    if (error) return { ok: false, state, reason: error, actionIndex }
     triggerSkillUseDamage(source, activeBefore, damageEvents)
     for (const owner of Object.values(working.players)) {
       for (const member of owner.team) member.statuses = getActiveStatuses(working, member)
     }
   }
 
+  damageEvents.push(...collectPeriodicDamage(working))
   const damageResults = settleTurnDamage(working, damageEvents)
   // Source-dependent effects end on death even when this damage ends the match.
   for (const owner of Object.values(working.players)) {

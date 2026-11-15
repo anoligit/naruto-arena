@@ -34,6 +34,7 @@ export type SkillUseError =
   | 'skill-replaced'
   | 'cooldown'
   | 'requirements-not-met'
+  | 'target-already-affected'
   | 'target-not-found'
   | 'target-defeated'
   | 'invalid-target'
@@ -116,6 +117,7 @@ export function validateSkillUse(
     (skill.target === 'self-or-enemy' && target.instanceId !== character.instanceId && !enemyTarget)
   ) return fail('invalid-target')
   if (hasUnknownStatus(target)) return fail('unknown-status')
+  if (skill.targetMustLackStatus && getActiveStatuses(state, target).some(active => active.statusId === skill.targetMustLackStatus)) return fail('target-already-affected')
   if (enemyTarget && isInvulnerableToSkill(state, target, skill) &&
     (!skill.allowInvulnerableTarget || isSkillExpanded(state, character, skill))) return fail('target-invulnerable')
   if (getSkillTargets(state, request.playerId, character, skill, target).some(hasUnknownStatus)) return fail('unknown-status')

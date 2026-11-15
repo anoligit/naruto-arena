@@ -1,7 +1,7 @@
- :root { font-family: Arial, Helvetica, sans-serif; color: #202020; background: #f5b800; font-synthesis: none; text-rendering: optimizeLegibility; color-scheme: light; }
+ :root { font-family: var(--game-font); color: #202020; background: #f5b800; font-synthesis: none; text-rendering: optimizeLegibility; color-scheme: light; }
 * { box-sizing: border-box; }
 body { margin: 0; }
-button, input { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; }
 button:disabled { cursor: not-allowed; }

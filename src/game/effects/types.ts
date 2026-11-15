@@ -1,9 +1,14 @@
+import type { EnergyType } from '../energy/types'
 import type { SkillClass } from '../classes/types'
 import type { BattleCharacter, BattleState, PlayerId, SkillDefinition } from '../types'
 
 export type DamageType = 'normal' | 'piercing' | 'affliction'
 
 export type SkillEffect =
+  | { type: 'steal-health'; amount: number }
+  | { type: 'steal-energy'; amount: number; types: EnergyType[] }
+  | { type: 'gain-energy'; amount: number }
+
   | {
       type: 'damage'
       amount: number
@@ -13,6 +18,7 @@ export type SkillEffect =
   | {
       type: 'apply-status'
       statusId: string
+      durationBonus?: { whenTargetHasStatus: string; turns: number; fromSourceOnly?: boolean }
       recipient?: 'user' | 'target'
       skipIfUntargetable?: boolean
     }
@@ -22,7 +28,13 @@ export type SkillEffect =
     }
 
 export type StatusModifier =
+  | { type: 'counter-first-harmful'; responseSkillId?: string }
+  | { type: 'destructible-defense'; amount: number }
+  | { type: 'on-harmful-skill'; statusId: string }
+  | { type: 'outgoing-damage-reduction'; amount: number; excludesAffliction: boolean }
   | { type: 'prevent-invulnerability' }
+  | { type: 'prevent-damage-reduction' }
+  | { type: 'periodic-damage'; amount: number; damageType: DamageType }
   | { type: 'enemy-skill-cost-increase'; classes: SkillClass[]; random: number }
   | { type: 'reflect'; classes: SkillClass[] }
   | {
@@ -52,7 +64,7 @@ export type StatusDefinition = {
   id: string
   name: string
   duration: {
-    type: 'opponent-turns' | 'owner-turns'
+    type: 'opponent-turns' | 'owner-turns' | 'permanent'
     turns: number
   }
   modifiers: StatusModifier[]
@@ -60,6 +72,7 @@ export type StatusDefinition = {
   endsWhenSourceDies?: boolean
   invisible?: boolean
   control?: boolean
+  action?: boolean
 }
 
 
@@ -72,10 +85,12 @@ export type ActiveStatus = {
   sourceSkillId?: string
   appliedOnUserTurn?: number
   appliedAt?: { turn: number; action: number; effect: number }
+  shieldRemaining?: number
   blockedModifiers?: StatusModifier['type'][]
   expiration: {
     playerId: PlayerId
     afterTurn: number
+    permanent?: true
   }
 }
 
@@ -84,6 +99,7 @@ export type DamageEvent = {
   targetInstanceId: string
   skillId: string
   amount: number
+  leechToInstanceId?: string
   execute?: boolean
   damageType: DamageType
 }
@@ -91,6 +107,7 @@ export type DamageResult = { targetInstanceId: string; damage: number; healthBef
 export type EffectError = 'unknown-status-definition' | 'invalid-effect-definition'
 export type EffectContext = {
   state: BattleState; playerId: PlayerId; source: BattleCharacter; target: BattleCharacter
+  random?: () => number
   applicationId?: string
   actionIndex?: number
   skill: SkillDefinition; effectIndex: number; damageEvents: DamageEvent[]

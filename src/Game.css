@@ -10,12 +10,12 @@
   margin: 0 auto;
   padding: 32px 28px 12px;
   display: grid;
-  grid-template-rows: 340px 90px 350px 24px;
+  grid-template-rows: 340px 90px 350px;
   gap: 14px;
   box-sizing: border-box;
   background: #d6c49a;
   color: #222;
-  font: 14px/1.4 Arial, sans-serif;
+  font: 700 14px/1.4 var(--game-font);
 }
 
 .game * {
@@ -169,7 +169,7 @@
   gap: 7px;
   color: #786b4e;
   font-size: 11px;
-  font-weight: bold;
+  font-weight: 400;
 }
 
 .game .description-body {
@@ -192,6 +192,7 @@
 }
 
 .game .skill-facts {
+  font-weight: 400;
   display: flex;
   justify-content: space-between;
   align-items: start;
@@ -210,7 +211,7 @@
 }
 
 .game .skill-facts dt {
-  font-weight: bold;
+  font-weight: 400;
 }
 
 .game .skill-facts dd {
@@ -420,15 +421,17 @@
   cursor: not-allowed;
 }
 
-/* 7. Instruções fora dos painéis de conteúdo. */
-.game .selection-help {
-  grid-row: 4;
-  min-width: 0;
-  margin: 0;
-  color: #51452c;
-  font-size: 11px;
-  line-height: 1.4;
+.selection-team-heading { display: none; }
+.selection-team-summary, .selection-team-actions { display: contents; }
+
+/* A consulta usa o mesmo conteúdo e estilos da batalha. */
+.game .selection-character-details {
+  grid-row: 1; width: 928px; max-width: calc(100% - 40px); height: 340px;
+  margin-left: auto; margin-right: 40px; padding: 12px;
+  border: 2px solid #70582a; background: #fff6db; overflow: auto;
 }
+.game .selection-character-details .battle-inspection { min-height: 0; }
+.game .inspection-shortcuts button { padding: 0; }
 
 /* 8. Ajuste compacto sem empilhar o time embaixo do catálogo. */
 @media (max-width: 1100px) {
@@ -449,4 +452,82 @@
     grid-template-columns: 170px repeat(4, minmax(0, 1fr));
     gap: 12px;
   }
+}
+
+/* Catálogo permanece na coluna original do desktop. */
+.selection-catalog { display: contents; }
+
+/* Mobile: consulta, catálogo e equipe acima da navegação persistente. */
+@media (max-width: 720px) {
+  body:has(.game) { background: #d6c49a; }
+  .game.mobile-selection {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    margin: 0;
+    padding: max(6px, env(safe-area-inset-top)) 6px calc(76px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 6px;
+    overflow: visible;
+  }
+  .game.mobile-selection.tab-characters { grid-template-rows: minmax(160px, 1fr); padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .game .selection-panel { display: contents; }
+  .game .selection-panel[hidden] { display: none; }
+  .game .team-panel, .game .selection-description-overlay, .game .selection-catalog, .game .selection-tab-page, .game .selection-navigation {
+    min-width: 0; min-height: 0; padding: 6px;
+    border: 1px solid #816a3a; border-radius: 7px; background: #fff6db;
+  }
+  .game .selection-description-overlay { grid-column: 1 / -1; width: 100%; position: relative; overflow: visible; padding: 8px; }
+  .game .selection-description-overlay .battle-inspection { padding-top: 0; overflow: visible; grid-template-rows: auto auto; }
+  .game .inspection-copy .character-unlock { margin-top: 5px; font-size: 10px; }
+  .game .selection-general-information h2 { margin: 0 0 5px; color: #b51d23; font-size: 16px; }
+  .game .selection-general-information p { margin: 4px 0; font-size: 12px; line-height: 1.3; }
+  .game .selection-catalog { grid-row: 1; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 6px; padding-bottom: 108px; }
+  .game .selection-filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding-bottom: 5px; border-bottom: 1px solid #b6a174; font-size: 11px; }
+  .game .selection-filter-fields { display: grid; gap: 4px; min-width: 0; }
+  .game .selection-filter-missions { align-self: stretch; }
+  .game .selection-filter-options { display: flex; align-items: center; gap: 8px; }
+  .game .selection-filters button { min-height: 28px; padding: 3px 8px; border: 1px solid #b6a174; background: #f4e3b5; font-size: 10px; }
+  .game .selection-filters input { width: 100%; min-width: 0; height: 32px; padding: 3px 8px; border: 1px solid #b6a174; background: #fff6db; font-size: 16px; }
+  .game .character-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: auto; align-content: start; justify-items: center; gap: 10px; overflow: visible; padding: 3px; }
+  .game .team-panel { position: fixed; z-index: 9; bottom: calc(68px + env(safe-area-inset-bottom)); left: 6px; right: 6px; display: block; }
+  .game .selection-pagination { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-bottom: 6px; }
+  .game .selection-pagination button { min-height: 32px; padding: 4px 6px; border: 1px solid #b6a174; background: #fff6db; font-size: 11px; }
+  .game .selection-pagination button:disabled, .game .selection-team-play:disabled { opacity: .5; cursor: not-allowed; }
+  .game .selection-team-summary { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 7px; }
+  .game .selection-team-actions { display: grid; gap: 2px; }
+  .game .selection-team-heading { display: block; font-size: 10px; }
+  .game .selection-team-add { width: 100%; padding: 0; min-height: 24px; font-size: 18px; line-height: 1; }
+  .game .team-slots { grid-template-columns: repeat(3, 38px); gap: 4px; padding: 0; }
+  .game .team-slot { width: 38px; height: 38px; }
+  .game .selection-team-play { width: 100%; min-height: 38px; padding: 4px 6px; border: 1px solid #b6a174; background: #fff6db; font-size: 11px; }
+  .game .selection-navigation { grid-row: 2; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; padding: 4px; }
+  .game .selection-navigation { position: fixed; z-index: 10; bottom: max(6px, env(safe-area-inset-bottom)); left: 6px; right: 6px; }
+  .game .selection-navigation button { display: grid; justify-items: center; align-content: center; gap: 4px; min-width: 0; min-height: 48px; padding: 4px 0; border: 1px solid #b6a174; background: #fff6db; font-size: 8px; }
+  .game .selection-navigation button[aria-current='page'] { color: #b51d23; border-color: #b51d23; }
+  .game .selection-navigation svg { width: 20px; height: 20px; }
+  .game .selection-tab-page { grid-row: 1; overflow: visible; }
+  .game .selection-tab-page h2 { margin: 0 0 12px; color: #b51d23; font-size: 20px; }
+  .game .selection-play-anchor { position: relative; min-width: 0; }
+  .game .selection-play-list {
+    position: absolute; right: 0; bottom: calc(100% + 8px);
+    width: 100%; padding: 4px;
+    border: 1px solid #816a3a; border-radius: 7px; background: #fff6db;
+    box-shadow: 0 2px 12px #0003;
+  }
+  .game .selection-play-list .game-menu { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .game .selection-mode-status { grid-column: 1 / -1; font-size: 11px; }
+  .game .selection-play-list .game-menu button { min-height: 36px; padding: 6px 4px; font-size: 12px; overflow-wrap: anywhere; text-align: left; }
+
+}
+@media (max-width: 359px) {
+  .game.mobile-selection { --catalog-size: calc((100vw - 72px) / 4); }
+}
+
+@media (max-width: 720px) {
+  .game .character { touch-action: manipulation; }
 }

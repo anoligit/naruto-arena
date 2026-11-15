@@ -5,7 +5,7 @@
 .main-menu a[aria-current="page"] { background: #ffedb3; border-color: #603d00; }
 .main-menu a:hover { background: #fff1bf; }
 .main-menu button:disabled { color: #646464; }
-.main-menu small { display: block; font-size: 10px; text-transform: none; font-weight: normal; }
+.main-menu small { display: block; font-size: 10px; text-transform: uppercase; font-weight: 700; }
 .blue-panel { background: #0879b5; border: 1px solid #15516e; padding: 15px; color: white; }
 .blue-panel section + section { margin-top: 26px; }
 .blue-panel h2 { margin: 0 0 10px; font-size: 22px; line-height: 1.15; font-style: italic; text-decoration: underline; }

@@ -10,7 +10,7 @@ export function getSkillReflection(
   target: BattleCharacter,
   skill: SkillDefinition
 ): { reflected: boolean; blockedReflection: boolean; counter?: ActiveStatus } {
-  const counter = skill.target === 'enemy' ? getActiveStatuses(state, target).find((active) =>
+  const counter = !skill.cannotBeCountered && skill.target === 'enemy' ? getActiveStatuses(state, target).find((active) =>
     getAppliedModifiers(active).some((modifier) => modifier.type === 'reflect' && matchesSkillClasses(skill.classes, modifier.classes))) : undefined
   const reflected = counter !== undefined
   // Uma habilidade refletida não reflete novamente. Control perde a conexão.

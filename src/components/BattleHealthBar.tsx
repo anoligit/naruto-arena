@@ -9,10 +9,10 @@ type Props = {
 
 // A vida restante usa a cor atual; só a diferença prevista recebe o tom claro.
 const healthColors = {
-  red: { confirmed: '#f87171', provisional: '#fecaca' },
-  orange: { confirmed: '#fb923c', provisional: '#fed7aa' },
-  yellow: { confirmed: '#facc15', provisional: '#fef08a' },
-  green: { confirmed: '#4ade80', provisional: '#bbf7d0' },
+  red: { confirmed: '#ff2020', provisional: '#fecaca' },
+  orange: { confirmed: '#ff9500', provisional: '#fed7aa' },
+  yellow: { confirmed: '#ffe000', provisional: '#fef08a' },
+  green: { confirmed: '#20d532', provisional: '#bbf7d0' },
 }
 
 export default function BattleHealthBar({ health, maxHealth, projectedHealth, label }: Props) {

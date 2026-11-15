@@ -4,7 +4,7 @@ import { getEnemyCostEffects } from '../energy/skillCost'
 import { getPlannedTargets, skillForAction } from '../plannedActions'
 import type { PlannedAction } from '../plannedActions'
 import type { BattleCharacter, BattleState, PlayerId } from '../types'
-import { getActiveStatuses } from './active'
+import { getActiveStatuses, isActionSuppressed } from './active'
 import { getAppliedModifiers } from './appliedModifiers'
 import { statuses } from './catalog'
 import { isCounterReportVisible } from './counters'
@@ -53,6 +53,10 @@ export function getCharacterIndicators(
     if (!auraLines && active.blockedModifiers?.includes('invulnerable')) {
       lines.push('A invulnerabilidade desta aplicação foi impedida; os demais efeitos permanecem ativos.')
     }
+    if (!auraLines && active.blockedModifiers?.some(type => type === 'damage-reduction' || type === 'damage-reduction-percent')) {
+      lines.push('A redução de dano desta aplicação foi impedida; os demais efeitos permanecem ativos.')
+    }
+    if (isActionSuppressed(battle, member, active)) lines.push('Efeito Action temporariamente suspenso.')
     return {
       id: auraLines ? `aura:${active.sourceCharacterId}:${active.instanceId}` : active.instanceId,
       name: skill?.name ?? definition?.name ?? active.statusId,
@@ -89,6 +93,7 @@ export function getCharacterIndicators(
     const counteredName = `${actorDefinition?.name ?? 'personagem'} · ${playerName(report.counteredPlayerId)}`
     const counterName = counterSkill?.name ?? statuses.find((entry) => entry.id === report.counterStatusId)?.name ?? report.counterStatusId
     const outcomes = {
+      countered: 'A habilidade ofensiva foi counterada e cancelada por completo.',
       reflected: `A habilidade foi refletida. Destino do retorno: ${counteredName}.`,
       cancelled: 'A habilidade Control foi counterada e cancelada.',
       'return-blocked': `O counter refletiu a habilidade para ${counteredName}, mas a proteção desse personagem impediu o retorno.`,

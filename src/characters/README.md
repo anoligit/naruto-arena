@@ -1,6 +1,6 @@
 # Criar e editar personagens
 
-Cada personagem possui uma pasta com `index.ts` e `images/`. O arquivo do Zabuza é um exemplo completo. Todos os seis personagens seguem a mesma organização.
+Cada personagem possui uma pasta com `index.ts` e `images/`. O arquivo do Zabuza é um exemplo completo. Os personagens seguem a mesma organização.
 
 ## Ordem do arquivo
 
@@ -78,3 +78,32 @@ Descrições numéricas usam as constantes. Mudanças no comportamento exigem ta
 O efeito persistente usa `recipient: 'user'` para continuar no Zabuza, mesmo quando a ativação foi feita clicando em um inimigo. A aura de custo adicional afeta a equipe inimiga inteira enquanto esse efeito estiver ativo, como antes. Mudar o alvo clicável não transfere a proteção para o inimigo.
 
 Os indicadores planejados mostram os destinatários dos efeitos, incluindo usuário e inimigos afetados pela aura. A ação continua sendo única: cancelar libera a reserva inteira; confirmar cobra uma vez.
+
+## Marcas, efeitos Action e dano contínuo
+
+O Shikamaru demonstra regras reutilizáveis sem IDs especiais no motor:
+
+- `skill.targetMustLackStatus`: impede atribuir a habilidade a quem já tem aquela marca.
+- `skill.cannotBeCountered`: impede a interceptação pela reflexão.
+- `apply-status.durationBonus`: soma turnos se o destinatário possui `whenTargetHasStatus`. Com `fromSourceOnly: true`, só considera a marca aplicada pelo mesmo personagem.
+- `statuses[].action: true`: suspende os modificadores se a origem estiver stunada para a habilidade ou o alvo estiver invulnerável a ela. O efeito continua contando duração e pode voltar a atuar; Control, por outro lado, termina ao ser interrompido.
+- `periodic-damage`: repete o dano no final dos turnos seguintes da origem, sem novo custo ou recarga. O primeiro dano é declarado como efeito imediato da habilidade. O timeout também processa a repetição.
+- `prevent-damage-reduction`: impede reduções fixas e percentuais aplicadas depois dele. Preserva as anteriores e os outros benefícios do status que concede a redução.
+
+A duração estendida é registrada por destinatário na expiração da aplicação; não se modifica o cadastro global. O indicador consulta essa expiração, inclusive quando só parte de uma habilidade em área foi prolongada.
+
+## Roubo, defesa destrutível e counters de uma utilização
+
+Shino e Zaku mostram os seguintes dados reutilizáveis:
+
+- `steal-health`: dano affliction cuja vida efetivamente retirada é devolvida ao usuário, limitada pela vida máxima; não revive.
+- `steal-energy`: transfere até `amount` energias dos tipos de `types` que estiverem disponíveis na equipe do alvo. Sem saldo elegível, não transfere nem cria energia.
+- `gain-energy`: concede energia de tipo aleatório à equipe do usuário, uma vez por habilidade, inclusive em área.
+- `targetExpansion: { target: 'all-living-allies' }`: a habilidade alcança todos os aliados vivos.
+- `destructible-defense`: reserva consumível contra dano normal e piercing; affliction passa. O saldo de cada aplicação fica em `shieldRemaining` e o indicador mostra o valor restante.
+- `duration: { type: 'permanent', turns: 0 }`: não expira pela passagem de turnos. Defesa com saldo zero é removida.
+- `counter-first-harmful`: consome o status ao interceptar a primeira habilidade ofensiva e cancela a utilização inteira, antes de processar qualquer alvo. `responseSkillId` executa uma habilidade de resposta sem custo, recarga ou consumo de ação. A resposta respeita invulnerabilidade, counters e reflexão.
+- `on-harmful-skill`: aplica o `statusId` quando o personagem marcado usa uma habilidade ofensiva nova. Danos contínuos anteriores não ativam essa regra.
+- `outgoing-damage-reduction`: reduz o dano causado pela habilidade. `excludesAffliction: true` preserva affliction.
+
+Não use `damage-reduction` para uma defesa destrutível: redução não perde pontos a cada ataque; defesa destrutível perde. O bloqueio de novas reduções do Shikamaru não impede Bug Wall.

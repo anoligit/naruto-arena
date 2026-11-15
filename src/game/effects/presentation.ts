@@ -9,6 +9,14 @@ export function describeStatusEffect(definition: StatusDefinition, skills: reado
   const skillName = (id: string) => skills.find((skill) => skill.id === id)?.name ?? id
   const describe = (modifier: StatusModifier): string => {
     switch (modifier.type) {
+      case 'counter-first-harmful': return `Cancela a primeira habilidade ofensiva que atingir este personagem.${modifier.responseSkillId ? ` Responde com ${skillName(modifier.responseSkillId)}.` : ''}`
+      case 'destructible-defense': return `Possui ${number(modifier.amount)} pontos de defesa destrutível contra dano normal e piercing. Affliction passa pela defesa.`
+      case 'on-harmful-skill': return 'Ao usar uma nova habilidade ofensiva, ativa o efeito adicional registrado nesta marca.'
+      case 'outgoing-damage-reduction': return `Causa ${number(modifier.amount)} a menos de dano${modifier.excludesAffliction ? ' não affliction' : ''}.`
+      case 'prevent-damage-reduction':
+        return 'Impede novas reduções de dano. Preserva as que já estavam ativas antes deste efeito.'
+      case 'periodic-damage':
+        return `Recebe ${number(modifier.amount)} de dano ${modifier.damageType} a cada turno de quem aplicou a habilidade.`
       case 'prevent-invulnerability':
         return 'Impede novas invulnerabilidades. Não remove as que já estavam ativas antes deste efeito.'
       case 'enemy-skill-cost-increase':
@@ -47,6 +55,7 @@ export function describeStatusEffect(definition: StatusDefinition, skills: reado
   const lines = definition.modifiers.map(describe)
   if (definition.indicatorNote) lines.push(definition.indicatorNote)
   if (definition.endsWhenSourceDies) lines.push('Termina se quem aplicou este efeito morrer.')
+  if (definition.action) lines.push('Efeito Action: fica suspenso enquanto o usuário estiver stunado para esta habilidade ou o alvo estiver invulnerável a ela.')
   if (definition.control) lines.push('Termina se o usuário ficar stunado nas classes desta habilidade ou se o alvo ficar invulnerável a esta habilidade.')
   return lines
 }
@@ -60,6 +69,7 @@ export function formatStatusDuration(
   battle: BattleState,
   active: ActiveStatus
 ): string {
+  if (active.expiration.permanent) return 'Até ser destruída.'
   const remaining = getStatusRemainingTurns(battle, active)
   if (remaining === 0) return 'Efeito encerrado.'
   if (remaining === 1 && active.expiration.playerId === battle.activePlayerId) return 'acaba esse turno'

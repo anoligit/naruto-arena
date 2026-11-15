@@ -10,6 +10,7 @@ export function getSkillTargets(
   state: BattleState, playerId: PlayerId, source: BattleCharacter,
   skill: SkillDefinition, primaryTarget: BattleCharacter
 ): BattleCharacter[] {
+  if (skill.targetExpansion?.target === 'all-living-allies') return state.players[playerId].team.filter(member => member.health > 0)
   if (!isSkillExpanded(state, source, skill)) return [primaryTarget]
   const opponentId = playerId === 'player-1' ? 'player-2' : 'player-1'
   return state.players[opponentId].team.filter((target) =>
@@ -17,6 +18,7 @@ export function getSkillTargets(
 }
 
 export function describeSkillTarget(state: BattleState, source: BattleCharacter, skill: SkillDefinition): string {
+  if (skill.targetExpansion?.target === 'all-living-allies') return 'Todos os aliados vivos, incluindo o próprio usuário'
   if (isSkillExpanded(state, source, skill)) return 'Todos os inimigos vivos e vulneráveis a esta habilidade'
   if (skill.target === 'self-or-enemy') return 'O próprio usuário ou um inimigo vivo e vulnerável'
   if (skill.target === 'self') return 'O próprio usuário'

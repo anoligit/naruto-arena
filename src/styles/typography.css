@@ -1,0 +1,10 @@
+:root {
+  --game-font: 'Arena Franklin', 'Franklin Gothic Book', Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Caixa alta só na apresentação: IDs, mensagens e dados mantêm seus valores. */
+button, input, select, textarea {
+  text-transform: inherit;
+}
