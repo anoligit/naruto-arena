@@ -1,11 +1,12 @@
 import type { SkillDefinition, StatusDefinition } from '../game/types'
-import type { UnlockRequirement } from '../missions'
+import type { UnlockRequirement, CharacterMission } from '../missions/definition'
 
 export type CharacterInfo = {
   name: string
   image: string
   description: string
   unlockRequirement: UnlockRequirement
+  mission?: CharacterMission
 }
 
 // Nome, imagem e descrição de cada habilidade existem apenas em SkillDefinition.

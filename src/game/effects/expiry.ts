@@ -24,9 +24,9 @@ export function collectExpiringDamage(state: BattleState): DamageEvent[] {
     const definition = statuses.find(status => status.id === active.statusId)
     const source = Object.values(state.players).flatMap(player => player.team).find(member => member.instanceId === active.sourceCharacterId)
     const skill = findSourceSkill(source, active.sourceSkillId)
-    if (!source || !skill || target.health <= 0 || (definition?.endsWhenSourceDies && source.health <= 0)) continue
+    if (!source || !skill || target.health <= 0 && !definition?.persistsOnDead || (definition?.endsWhenSourceDies && source.health <= 0)) continue
     for (const [effectIndex, effect] of (definition?.onExpireEffects ?? []).entries()) {
-      const error = applySkillEffect(effect, { state, source, target, skill, playerId: active.sourcePlayerId, effectIndex, damageEvents, periodic: true })
+      const error = applySkillEffect(effect, { state, source, target, skill, playerId: active.sourcePlayerId, effectIndex, damageEvents, periodic: true, damageBonus: active.sourceDamageBonus })
       if (error) throw new Error(`Efeito de término inválido: ${definition?.id}: ${error}`)
     }
   }

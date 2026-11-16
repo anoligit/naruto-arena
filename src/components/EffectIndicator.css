@@ -63,3 +63,19 @@
 .effect-origin-enemy {
   background: #b42328;
 }
+
+.effect-icon > .effect-stack-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 14px;
+  padding: 0 2px;
+  border: 1px solid #fff6db;
+  border-radius: 3px;
+  background: #211b13;
+  color: #fff6db;
+  font: 700 10px/13px var(--game-font);
+  text-align: center;
+  pointer-events: none;
+  z-index: 1;
+}

@@ -1,4 +1,5 @@
 import type { RefObject } from 'react'
+import { getOngoingSkills } from '../game/ongoingSkills'
 import { characters } from '../data/characters'
 import EnergyCost from '../components/EnergyCost'
 import EnergyToken from '../components/EnergyToken'
@@ -15,6 +16,7 @@ export default function TurnConfirmationContent({ battle, queue, payment, remain
   onChange: (payment: EnergyPool) => void; onMove: (from: number, to: number) => void
   onCancel: () => void; onConfirm: () => void
 }) {
+  const ongoing = getOngoingSkills(battle,battle.activePlayerId)
   const budget = getQueueBudget(battle, queue)
   const available = budget?.afterSpecific ?? createEmptyEnergyPool()
   const required = budget?.randomRequired ?? 0
@@ -35,8 +37,15 @@ export default function TurnConfirmationContent({ battle, queue, payment, remain
     </header>
     <section className="finish-attacks" aria-label="Ordem e custos dos ataques">
       <h3>Ordem de execução</h3><p className="finish-help">Organize a ordem das habilidades do turno.</p>
-      {!queue.length && <p>O turno será encerrado sem habilidades.</p>}
-      <ol className="finish-queue">{rows.map(({ action, skill, cost, additional }, index) => <li key={action.characterInstanceId}>
+      {!queue.length && <p>{ongoing.length ? 'Nenhuma nova habilidade selecionada.' : 'O turno será encerrado sem habilidades.'}</p>}
+      <ol className="finish-queue">
+        {ongoing.map(row => <li className="finish-ongoing" key={`ongoing:${row.id}`} aria-label={`${row.skill.name} · efeito ${row.suspended ? 'suspenso' : 'ativo'} · sem novo custo`}>
+          <b className="finish-ongoing-label">{row.suspended ? 'Pausa' : 'Ativa'}</b>
+          {row.skill.image ? <img src={imageUrl(row.skill.image)} alt="" draggable={false} /> : <span aria-hidden="true" />}
+          <div className="finish-action-info"><h4>{row.skill.name}</h4><span className="finish-ongoing-note">{row.sourceName} · sem novo custo</span></div>
+          {row.stackCount > 1 && <span className="finish-ongoing-count" aria-label={`${row.stackCount} acúmulos`}>×{row.stackCount}</span>}
+        </li>)}
+        {rows.map(({ action, skill, cost, additional }, index) => <li key={action.characterInstanceId}>
         <b className="finish-order">{index + 1}º</b>
         {skill?.image && <img src={imageUrl(skill.image)} alt="" draggable={false} />}
         <div className="finish-action-info"><h4>{skill?.name}</h4><EnergyCost cost={cost} />

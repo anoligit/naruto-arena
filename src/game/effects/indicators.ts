@@ -23,6 +23,10 @@ export type CharacterIndicator = {
   origin: 'ally' | 'enemy'
   planned: boolean
   counterReport?: boolean
+  sourceSkillId?: string
+  stackKey?: string
+  stackCount?: number
+  suspended?: boolean
   order: { turn: number; action: number; effect: number }
 }
 
@@ -51,6 +55,9 @@ export function getCharacterIndicators(
     const lines = auraLines ?? (definition
       ? describeStatusEffect({ ...definition, modifiers: getAppliedModifiers(active) }, skills)
       : ['Efeito ativo.'])
+    const delayed = battle.scheduledSkills?.find(record => record.markerInstanceId === active.instanceId && record.playerId === viewerId)
+    if (delayed) lines.push(`Habilidade adiada: ${delayed.skill.name}. Não cobra energia novamente.`)
+    if (!auraLines && active.remainingUses !== undefined) lines.push(`Cargas restantes: ${active.remainingUses}.`)
     if (!auraLines && getAppliedModifiers(active).some(isDefensiveModifier) && hasActiveModifier(battle, member, 'ignore-defenses')) lines.push('Defesa temporariamente suspensa: este personagem está ignorando efeitos defensivos.')
     if (!auraLines && active.blockedModifiers?.includes('invulnerable')) {
       lines.push('A invulnerabilidade desta aplicação foi impedida; os demais efeitos permanecem ativos.')
@@ -69,6 +76,9 @@ export function getCharacterIndicators(
       sourceSkillName: skill?.name ?? null,
       origin: active.sourcePlayerId === viewerId ? 'ally' : 'enemy',
       planned: false,
+      sourceSkillId: skill?.id,
+      stackKey: JSON.stringify([auraLines ? 'aura' : 'status', active.statusId, active.sourceCharacterId, skill?.id ?? active.sourceSkillId]),
+      suspended: isActionSuppressed(battle, member, active),
       order: applicationOrder(active),
     }
   }
@@ -99,6 +109,8 @@ export function getCharacterIndicators(
       reflected: `A habilidade foi refletida. Destino do retorno: ${counteredName}.`,
       cancelled: 'A habilidade Control foi counterada e cancelada.',
       'return-blocked': `O counter refletiu a habilidade para ${counteredName}, mas a proteção desse personagem impediu o retorno.`,
+      'ignored-target': 'Este personagem ignorou a habilidade. Os demais alvos não foram cancelados.',
+      'damage-prevented': 'O dano desta habilidade foi impedido e convertido em defesa destrutível. Os efeitos que não causam dano e os demais alvos seguem suas regras normais.',
       'prevented-invulnerability': 'A nova invulnerabilidade foi impedida. A ação, a energia e o cooldown foram consumidos normalmente.',
     }
     indicators.push({
@@ -138,8 +150,30 @@ export function getCharacterIndicators(
       order: { turn: battle.turnNumber, action: index, effect: 0 },
     })
   }
-  // Aliado/inimigo é apenas uma marca: nunca altera a posição cronológica.
-  return indicators.sort((left, right) =>
+  const groups = new Map<string, CharacterIndicator[]>()
+  for (const indicator of indicators) {
+    const key = indicator.stackKey ?? indicator.id
+    const group = groups.get(key) ?? []
+    group.push(indicator)
+    groups.set(key, group)
+  }
+  const grouped = [...groups.values()].map(entries => {
+    entries.sort((a,b) => a.order.turn-b.order.turn || a.order.action-b.order.action || a.order.effect-b.order.effect)
+    const first = entries[0]
+    if (!first.stackKey) return first
+    const durations = new Map<string, number>()
+    const lines = new Map<string, number>()
+    for (const entry of entries) {
+      durations.set(entry.duration,(durations.get(entry.duration) ?? 0)+1)
+      for (const line of new Set(entry.lines)) lines.set(line,(lines.get(line) ?? 0)+1)
+    }
+    return { ...first, id:`stack:${first.stackKey}`, stackCount:entries.length,
+      lines:entries.length === 1 ? first.lines : [`Acúmulos: ${entries.length}.`, ...[...lines].map(([line,count])=>count===entries.length ? line : `${line} (${count}/${entries.length} acúmulos)`)],
+      duration:durations.size === 1 ? first.duration : [...durations].map(([duration,count])=>`${count} ${count===1?'acúmulo':'acúmulos'}: ${duration}`).join('; '),
+    }
+  })
+  // O grupo ocupa a posição de sua aplicação mais antiga ainda ativa.
+  return grouped.sort((left, right) =>
     Number(left.planned) - Number(right.planned) ||
     left.order.turn - right.order.turn ||
     left.order.action - right.order.action ||

@@ -10,18 +10,19 @@ type Props = {
   duration: string
   planned?: boolean
   record?: boolean
+  stackCount?: number
   origin?: 'ally' | 'enemy'
   onConsult: () => void
 }
 
-export default function EffectIndicator({ name, image, lines, duration, planned = false, record = false, origin, onConsult }: Props) {
+export default function EffectIndicator({ name, image, lines, duration, planned = false, record = false, stackCount = 1, origin, onConsult }: Props) {
   const tooltipId = useId()
   const button = useRef<HTMLButtonElement>(null)
   const tooltip = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   const originLabel = origin === 'ally' ? 'Habilidade aliada' : origin === 'enemy' ? 'Habilidade inimiga' : ''
-  const contentKey = lines.join('\n') + duration + originLabel
+  const contentKey = lines.join('\n') + duration + originLabel + stackCount
 
   useLayoutEffect(() => {
     if (!open) return
@@ -51,7 +52,7 @@ export default function EffectIndicator({ name, image, lines, duration, planned 
       ref={button}
       type="button"
       className={`effect-icon${planned ? ' planned-icon' : ''}`}
-      aria-label={`Consultar ${planned ? 'ação atribuída' : record ? 'counter ocorrido' : 'efeito ativo'}: ${name}${originLabel ? ` · ${originLabel}` : ''}`}
+      aria-label={`Consultar ${planned ? 'ação atribuída' : record ? 'counter ocorrido' : 'efeito ativo'}: ${name}${originLabel ? ` · ${originLabel}` : ''}${stackCount > 1 ? ` · ${stackCount} acúmulos` : ''}`}
       aria-describedby={open ? tooltipId : undefined}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
@@ -61,6 +62,7 @@ export default function EffectIndicator({ name, image, lines, duration, planned 
       onClick={onConsult}
     >
       {image ? <img src={imageUrl(image)} alt="" draggable={false} /> : <span>{name}</span>}
+      {stackCount > 1 && <span className="effect-stack-count" aria-hidden="true">{stackCount}</span>}
       {origin && <span className={`effect-origin effect-origin-${origin}`} title={originLabel} aria-hidden="true" />}
     </button>
     {open && createPortal(

@@ -1,3 +1,4 @@
+import { findSourceSkill } from './origin'
 import { characters } from '../../data/characters'
 import { statuses } from './catalog'
 import { getActiveStatuses, hasActiveModifier, isInvulnerableToSkill, isActionSuppressed } from './active'
@@ -37,6 +38,12 @@ export function applyStatus(effect: Extract<SkillEffect, { type: 'apply-status' 
     skill.enhancement?.whenUserHasStatus === definition.id ||
     skill.replacement?.whenStatusId === definition.id)
   if (blocksInvulnerability && !grantsSkillChanges && definition.modifiers.every((modifier) => modifier.type === 'invulnerable')) return null
+  // Só uma nova aplicação efetiva de stun reage. Dano contínuo, imunidade,
+  // counters e múltiplos componentes do mesmo stun não multiplicam a reação.
+  const stunMarks = !context.periodic && !context.deferred && !blockedModifiers.includes('stun') && definition.modifiers.some(modifier => modifier.type === 'stun')
+    && (definition.ignoresImmunity || !hasActiveModifier(context.state, recipient, 'stun-immunity') || definition.modifiers.some(modifier => modifier.type === 'stun' && modifier.ignoresImmunity))
+    && context.skill.effects.some(entry => entry.type === 'apply-status' && entry.statusId === definition.id)
+    ? getActiveStatuses(context.state, recipient).filter(active => statuses.find(status => status.id === active.statusId)?.reapplyOnNewStun) : []
   const bonus = effect.durationBonus
   if (bonus && (!Number.isInteger(bonus.turns) || bonus.turns < 0)) return 'invalid-effect-definition'
   const extended = bonus && getActiveStatuses(context.state, recipient).some(active =>
@@ -49,13 +56,31 @@ export function applyStatus(effect: Extract<SkillEffect, { type: 'apply-status' 
   recipient.statuses.push({
     ...(effect.linkTo ? { linkedTargetInstanceId: effect.linkTo === 'source' ? context.source.instanceId : context.selectedTargetInstanceId ?? context.target.instanceId } : {}),
     instanceId: `${context.state.turnNumber}:${context.source.instanceId}:${context.skill.id}:${context.applicationId ?? context.target.instanceId}:${context.effectIndex}`,
-    statusId: definition.id, sourcePlayerId: context.playerId, sourceCharacterId: context.source.instanceId, sourceSkillId: context.skill.id,
-    ...(definition.modifiers.some(modifier => modifier.type === 'destructible-defense') ? { shieldRemaining: definition.modifiers.reduce((sum, modifier) => modifier.type === 'destructible-defense' ? sum + modifier.amount : sum, 0) } : {}),
+    statusId: definition.id, sourcePlayerId: context.playerId, sourceCharacterId: context.source.instanceId, sourceSkillId: context.skill.originSkillId ?? context.skill.id, sourceDamageBonus: context.skill.effectDamageBonus,
+    ...(definition.modifiers.some(modifier => modifier.type === 'destructible-defense') ? { shieldRemaining: effect.defenseFromTrigger && context.triggeringSkill ? context.triggeringSkill.effects.reduce((sum, incoming) => incoming.type === 'damage' || incoming.type === 'steal-health' ? sum + incoming.amount : sum, 0) : definition.modifiers.reduce((sum, modifier) => modifier.type === 'destructible-defense' ? sum + modifier.amount : sum, 0) } : {}),
+    ...((definition.uses ?? definition.endsAfterHarmfulSkills) ? { remainingUses: definition.uses ?? definition.endsAfterHarmfulSkills } : {}),
     isPrimaryTarget: context.isPrimaryTarget,
     appliedAt: { turn: context.state.turnNumber, action: context.actionIndex ?? 0, effect: context.effectIndex },
     ...(blockedModifiers.length ? { blockedModifiers } : {}),
     appliedOnUserTurn: context.state.players[context.playerId].turnsStarted,
     expiration: createStatusExpiration(context.state, context.playerId, { ...definition, duration }),
   })
+  for (const active of stunMarks) {
+    const key = JSON.stringify([recipient.instanceId, active.statusId, active.sourceCharacterId])
+    context.stunReapplications ??= new Set<string>()
+    if (context.stunReapplications.has(key)) continue
+    context.stunReapplications.add(key)
+    const source = Object.values(context.state.players).flatMap(player => player.team).find(member => member.instanceId === active.sourceCharacterId)
+    const skill = findSourceSkill(source, active.sourceSkillId)
+    if (!source || !skill) continue
+    const error = applyStatus({ type:'apply-status', statusId:active.statusId }, { ...context, source, skill, target:recipient,
+      playerId:active.sourcePlayerId, applicationId:`stun:${context.source.instanceId}:${context.skill.id}:${context.actionIndex ?? 0}:${recipient.instanceId}`, effectIndex:-200-context.effectIndex })
+    if (error) return error
+  }
+  const threshold = definition.onStacksReach
+  if (threshold && recipient.statuses.filter(active => active.statusId === definition.id && active.sourceCharacterId === context.source.instanceId).length >= threshold.count) {
+    recipient.statuses = recipient.statuses.filter(active => active.statusId !== definition.id || active.sourceCharacterId !== context.source.instanceId)
+    return applyStatus({ type: 'apply-status', statusId: threshold.statusId }, { ...context, target: recipient, effectIndex: context.effectIndex - 100 })
+  }
   return null
 }

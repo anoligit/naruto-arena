@@ -1,3 +1,5 @@
+import { resolveScheduledSkills } from './effects/scheduled'
+import { finishOwnerRules } from './effects/advancedUse'
 import { applyHealthPassives } from './effects/passives'
 import { collectExpiringDamage } from './effects/expiry'
 import { settleTurnDamage } from './effects/damage'
@@ -20,6 +22,8 @@ export function advanceTurn(
   }
 
   state = structuredClone(state)
+  finishOwnerRules(state)
+  resolveScheduledSkills(state)
   settleTurnDamage(state, collectExpiringDamage(state))
   for (const player of Object.values(state.players)) {
     for (const member of player.team) member.statuses = getActiveStatuses(state, member)
@@ -27,11 +31,11 @@ export function advanceTurn(
 
   applyHealthPassives(state)
   const firstTeamAlive = state.players['player-1'].team.some(
-    (character) => character.health > 0
+    (character) => character.health > 0 || character.statuses.some(active => statuses.find(status => status.id === active.statusId)?.persistsOnDead)
   )
 
   const secondTeamAlive = state.players['player-2'].team.some(
-    (character) => character.health > 0
+    (character) => character.health > 0 || character.statuses.some(active => statuses.find(status => status.id === active.statusId)?.persistsOnDead)
   )
 
   if (!firstTeamAlive || !secondTeamAlive) {
@@ -92,7 +96,7 @@ export function advanceTurn(
   const nextPlayer = players[nextPlayerId]
 
   const livingCharacters = nextPlayer.team.filter(
-    (character) => character.health > 0
+    (character) => character.health > 0 || character.statuses.some(active => statuses.find(status => status.id === active.statusId)?.persistsOnDead)
   ).length
 
   players[nextPlayerId] = {

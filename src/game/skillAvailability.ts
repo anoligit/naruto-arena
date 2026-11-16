@@ -1,3 +1,5 @@
+import { togglePreselection } from './preselection'
+import { getBattleSkills } from './skillCatalog'
 import { getDisplayedCooldown } from './cooldown'
 import { characters } from '../data/characters'
 import { validatePlannedAction } from './plannedActions'
@@ -32,9 +34,9 @@ export function getSkillAvailability(
   if (battle.phase !== 'planning') return blocked('confirmation-open')
   if (queue.some((action) => action.characterInstanceId === sourceInstanceId)) return blocked('already-queued')
   if (!source) return blocked('character-not-found')
-  const skill = characters.find((entry) => entry.id === source.characterId)
-    ?.skillDefinitions?.find((entry) => entry.id === skillId)
+  const skill = getBattleSkills(battle, source).find(entry => entry.id === skillId) ?? characters.find((entry) => entry.id === source.characterId)?.skillDefinitions?.find((entry) => entry.id === skillId)
   if (!skill) return blocked('skill-not-found')
+  if (skill.preselection) return togglePreselection(battle, ownerId, sourceInstanceId, skillId, now) ? { usable: true, reason: null, cooldown, targetInstanceIds: [] } : blocked('cooldown')
   const targets: string[] = []
   let reason: AvailabilityReason = 'no-valid-target'
   for (const owner of Object.values(battle.players)) {

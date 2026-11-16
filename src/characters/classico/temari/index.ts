@@ -284,6 +284,6 @@ export default defineCharacter({
   "unlockRequirement": {
     "type": "none"
   },
-  "order": 155,
+  "order": 14,
   abilities: [ability1, ability2, ability3, ability4],
 })

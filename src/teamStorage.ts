@@ -3,11 +3,11 @@ import type { Character } from './data/characters'
 
 export const TEAM_KEY = 'naruto-arena:team:v1'
 
-export function loadTeam(): (Character | null)[] {
+export function loadTeam(key = TEAM_KEY): (Character | null)[] {
   const emptyTeam = (): (Character | null)[] => [null, null, null]
 
   try {
-    const saved: unknown = JSON.parse(localStorage.getItem(TEAM_KEY) ?? 'null')
+    const saved: unknown = JSON.parse(localStorage.getItem(key) ?? 'null')
     if (!Array.isArray(saved)) return emptyTeam()
 
     const used = new Set<string>()
@@ -23,9 +23,9 @@ export function loadTeam(): (Character | null)[] {
   }
 }
 
-export function saveTeam(team: (Character | null)[]): void {
+export function saveTeam(team: (Character | null)[], key = TEAM_KEY): void {
   try {
-    localStorage.setItem(TEAM_KEY, JSON.stringify(team.map((member) => member?.id ?? null)))
+    localStorage.setItem(key, JSON.stringify(team.map((member) => member?.id ?? null)))
   } catch {
     // Character selection still works when the browser blocks storage.
   }

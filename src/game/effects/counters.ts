@@ -12,7 +12,7 @@ export type CounterReport = {
   counterSkillId?: string
   counterStatusId: string
   affectedCharacterId: string
-  outcome: 'countered' | 'reflected' | 'cancelled' | 'return-blocked' | 'prevented-invulnerability'
+  outcome: 'countered' | 'reflected' | 'cancelled' | 'return-blocked' | 'prevented-invulnerability' | 'damage-prevented' | 'ignored-target'
   appliedAt: { turn: number; action: number; effect: number }
   visibleFromTurn: number
   expiration: ActiveStatus['expiration']

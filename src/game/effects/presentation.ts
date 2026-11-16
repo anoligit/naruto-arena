@@ -37,11 +37,22 @@ export function describeStatusEffect(definition: StatusDefinition, skills: reado
       case 'stun':
         return modifier.classes
           ? `Não pode usar habilidades das classes: ${formatSkillClasses(modifier.classes)}.`
-          : modifier.scope === 'harmful' ? 'Não pode usar habilidades ofensivas.' : 'Não pode usar habilidades.'
+          : modifier.scope === 'helpful' ? 'Não pode usar habilidades defensivas ou de ajuda.' : modifier.scope === 'harmful' ? 'Não pode usar habilidades ofensivas.' : 'Não pode usar habilidades.'
       case 'isolated': return 'Fica isolado: só pode receber habilidades de si mesmo ou do personagem vinculado.'
       case 'life-link': return 'Se um dos personagens vinculados morrer, o outro também morre.'
       case 'healing-bonus': return `Cura ${modifier.amount} de vida adicional.`
       case 'incoming-damage-cap': return `Limita cada dano não Affliction a ${modifier.amount}.`
+      case 'cooldown-reduction': return `As habilidades têm ${modifier.amount} a menos de recarga.`
+      case 'heal-on-new-skill-damage': return `Recupera ${modifier.amount} de vida após receber novo dano de habilidade.`
+      case 'revive-on-death': return `Ao chegar a 0, retorna com ${modifier.health} de vida${modifier.uses ? `, até ${modifier.uses} vezes` : ''}.`
+      case 'forced-target': return 'Só pode selecionar o personagem vinculado como alvo.'
+      case 'delay-next-harmful': return `A próxima habilidade ofensiva será adiada em ${modifier.turns} jogadas do usuário.`
+      case 'energy-removal-reduction': return `Remove ou rouba ${number(modifier.amount)} energia a menos.`
+      case 'on-allied-damage': return `Uma marca é consumida quando uma habilidade aliada causa dano; aplica ${modifier.amount} de dano ${modifier.damageType} adicional.`
+      case 'intercept-target': return 'Ignora a primeira habilidade ofensiva elegível apenas neste personagem, preservando seus outros alvos.'
+      case 'counter-damage-shield': return 'O primeiro ataque de dano elegível não causa dano e concede defesa destrutível equivalente ao dano original.'
+      case 'random-harmful-target': return 'Suas habilidades ofensivas escolhem um inimigo aleatório.'
+      case 'harmful-skills-heal': return 'Suas habilidades ofensivas curam em vez de causar dano; os demais efeitos são anulados.'
       case 'cooldown-increase': return `As habilidades recebem ${modifier.amount} de recarga adicional.`
       case 'ignore-healing': return 'Não recebe cura enquanto este efeito estiver ativo.'
       case 'skill-cost-reduction': return `As habilidades${modifier.scope === 'harmful' ? ' ofensivas' : ''} custam ${modifier.random} energia aleatória a menos.`

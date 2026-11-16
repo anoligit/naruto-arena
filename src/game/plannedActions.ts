@@ -1,5 +1,5 @@
 import { getAffectedCharacters } from './targeting/index'
-import { getEffectiveSkill } from './skillCatalog'
+import { getBattleSkills, getEffectiveSkill } from './skillCatalog'
 import { characters } from '../data/characters'
 import { createEmptyEnergyPool, paySkillCost, energyTotal, energyDisplayOrder as energyTypes } from './energy/index'
 import { validateSkillUse } from './validateSkillUse'
@@ -12,7 +12,7 @@ export { energyTotal, energyDisplayOrder as energyTypes } from './energy/index'
 
 export function skillForAction(battle: BattleState, action: PlannedAction) {
   const member = battle.players[action.playerId].team.find((entry) => entry.instanceId === action.characterInstanceId)
-  const skill = characters.find((entry) => entry.id === member?.characterId)?.skillDefinitions?.find((entry) => entry.id === action.skillId)
+  const skill = characters.find((entry) => entry.id === member?.characterId)?.skillDefinitions?.find((entry) => entry.id === action.skillId) ?? (member && getBattleSkills(battle, member).find(skill => skill.id === action.skillId))
   return member && skill ? getEffectiveSkill(battle, member, skill) : undefined
 }
 

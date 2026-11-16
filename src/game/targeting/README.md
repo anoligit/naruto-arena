@@ -13,7 +13,7 @@ O jogador escolhe um inimigo válido. O sistema resolve os demais alvos automati
 
 Para invulnerabilidade restrita, o modificador aceita `classes: ['physical']`. Sem `classes`, protege contra todas as classes, como antes.
 
-O arquivo `src/characters/yuki haku/index.ts` serve de modelo: dados gerais, depois cada habilidade junto de seus parâmetros e efeitos, por fim o registro automático.
+O arquivo `src/characters/classico/haku/index.ts` serve de modelo: dados gerais, depois cada habilidade junto de seus parâmetros e efeitos, por fim o registro automático.
 
 Sem `whenUserHasStatus`, `targetExpansion` aplica a habilidade a todos os inimigos vulneráveis em todo uso, como Great Waterfall Technique.
 

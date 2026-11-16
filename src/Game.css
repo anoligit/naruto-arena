@@ -531,3 +531,86 @@
 @media (max-width: 720px) {
   .game .character { touch-action: manipulation; }
 }
+
+/* Seleção mobile: somente o catálogo rola entre os controles persistentes. */
+@media (max-width: 720px) {
+  .game.mobile-selection.tab-characters {
+    height: 100dvh;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    padding: max(6px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+  .game.tab-characters .selection-catalog {
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 6px;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .game.tab-characters .selection-filters { position: relative; z-index: 2; }
+  .game.tab-characters .character-grid {
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    overflow-anchor: none;
+    scrollbar-gutter: stable;
+    padding-bottom: 8px;
+  }
+  .game.tab-characters .team-panel {
+    position: relative;
+    grid-row: 2;
+    inset: auto;
+  }
+  .game.tab-characters .selection-navigation {
+    position: relative;
+    grid-row: 3;
+    inset: auto;
+  }
+  .game .selection-description-slot {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    position: relative;
+    height: 0;
+    transition: height 260ms ease-in-out;
+  }
+  .game .selection-description-reveal {
+    height: 100%;
+    overflow: hidden;
+    padding-block: 8px;
+  }
+  .game .selection-description-overlay { width: 100%; }
+  .game .selection-description-slot.has-character-anchor::after {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    left: var(--pointer-x);
+    width: 12px;
+    height: 12px;
+    background: #fff6db;
+    border: 1px solid #816a3a;
+    transform: translateX(-50%) rotate(45deg);
+    pointer-events: none;
+  }
+  .game .selection-description-slot.opens-below::after {
+    top: 2px;
+    border-right: 0;
+    border-bottom: 0;
+  }
+  .game .selection-description-slot.opens-above::after {
+    bottom: 2px;
+    border-left: 0;
+    border-top: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .game .selection-description-slot { transition: none; }
+  }
+}
+
+/* A seleção do desktop mantém o retrato e as quatro habilidades grandes no topo. */
+@media (min-width: 721px) {
+  .game .character-details .skill[aria-pressed='true'] { outline: none; }
+  .game .character-details .skill img { opacity: .5; filter: saturate(.45); }
+  .game .character-details .skill[aria-pressed='true'] img { opacity: 1; filter: none; }
+}

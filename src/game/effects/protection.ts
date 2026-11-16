@@ -23,7 +23,7 @@ export function isInvulnerableByModifiers(modifiers: StatusModifier[], skill: Sk
 export function isDefensiveModifier(modifier: StatusModifier): boolean {
   return ['damage-reduction', 'damage-reduction-percent', 'destructible-defense',
     'invulnerable', 'reflect', 'counter-first-harmful', 'damage-immunity',
-    'harmful-effect-immunity', 'stun-immunity', 'cannot-die', 'on-new-skill-damage'].includes(modifier.type)
+    'harmful-effect-immunity', 'stun-immunity', 'intercept-target', 'counter-damage-shield', 'cannot-die', 'on-new-skill-damage'].includes(modifier.type)
 }
 
 export function filterIgnoredDefenses(modifiers: StatusModifier[]): StatusModifier[] {

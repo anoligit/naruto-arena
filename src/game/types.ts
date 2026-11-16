@@ -34,6 +34,19 @@ export type SkillDefinition = {
   enhancement?: SkillEnhancement
   classes: SkillClass[]
   passive?: boolean
+  battleStart?: boolean
+  preselection?: { group: string }
+  summonSelections?: { group: string; shieldPerOption: number; randomPerOption: number; cooldownTurns: number }
+  selectionEffects?: { group: string; skillId: string }
+  originSkillId?: string
+  effectDamageBonus?: number
+  randomTargetCount?: { base: number; statusId?: string }
+  replayPrevious?: { damageBonus: number; lockOriginalTurns: number }
+  archivedSkills?: SkillDefinition[]
+  storedCast?: { count: number; countWhenStatus?: { statusId: string; count: number } }
+  onUseSkillId?: string
+  onUseEffects?: SkillEffect[]
+  requiredStoredSkills?: number
   copySlotStatusId?: string
   implementationPending?: boolean
   maxUserHealth?: number
@@ -49,7 +62,8 @@ export type SkillDefinition = {
   replacement?: { skillId: string; whenStatusId: string }
 }
 export type SkillCondition = {
-  type: 'has-status' | 'lacks-status'
+  count?: number
+  type: 'has-status' | 'lacks-status' | 'has-revival' | 'status-uses'
   statusId: string
 }
 
@@ -63,6 +77,9 @@ export type BattleCharacter = {
   statuses: ActiveStatus[]
   skillReadyOnTurn: Record<string, number>
   skillUses?: Record<string, number>
+  memory?: { consumedStatusStacks?: { turn: number; keys: string[] }; previousSkill?: SkillDefinition; previousTurn?: number; storedSkills?: SkillDefinition[]; health?: Record<string, number> }
+  selectedOptions?: string[]
+  lastHarmfulTurn?: number
   copiedSkill?: SkillDefinition
   triggeredPassives?: string[]
   lastSkillUsedOnTurn: number | null
@@ -82,6 +99,7 @@ export type BattlePlayer = {
 }
 
 export type BattleState = {
+  scheduledSkills?: { id: string; playerId: PlayerId; sourceInstanceId: string; targetInstanceId: string; skill: SkillDefinition; afterOwnerTurn?: number; afterBattleTurn?: number; markerInstanceId?: string; causePlayerId: PlayerId }[]
   counterReports: import('./effects/counters').CounterReport[]
   players: Record<PlayerId, BattlePlayer>
   activePlayerId: PlayerId

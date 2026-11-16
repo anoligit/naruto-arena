@@ -13,7 +13,7 @@ export function getSkillReflection(
   if (!hasActiveModifier(state, target, 'reflect')) return { reflected: false, blockedReflection: false }
   const enemyTarget = !Object.values(state.players).some(player => player.team.some(member => member.instanceId === source.instanceId) && player.team.some(member => member.instanceId === target.instanceId))
   const counter = !skill.cannotBeCountered && (skill.target === 'enemy' || (skill.target === 'ally-or-enemy' && enemyTarget)) ? getActiveStatuses(state, target).find((active) =>
-    getAppliedModifiers(active).some((modifier) => modifier.type === 'reflect' && matchesSkillClasses(skill.classes, modifier.classes))) : undefined
+    getAppliedModifiers(active).some((modifier) => modifier.type === 'reflect' && (!modifier.oncePerTurn || active.lastTriggeredTurnBy?.reflection !== state.turnNumber) && matchesSkillClasses(skill.classes, modifier.classes))) : undefined
   const redirected = counter && getAppliedModifiers(counter).some(modifier => modifier.type === 'reflect' && modifier.toLinkedTarget)
   const redirectTarget = redirected ? Object.values(state.players).flatMap(player => player.team).find(member => member.instanceId === counter.linkedTargetInstanceId && member.health > 0) : undefined
   const reflected = counter !== undefined

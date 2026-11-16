@@ -75,6 +75,6 @@ const deflection: AbilityDefinition = {
 export default defineCharacter({
   id: characterId, name: 'Abumi Zaku', image: portrait,
   description: 'Abumi Zaku é um dos três genin do Som enviados para os exames chuunin. Ele foi cirurgicamente alterado com tubos ocos em seus braços, permitindo-lhe criar ondas de ar comprimido.',
-  unlockRequirement: { type: 'none' }, order: 101,
+  unlockRequirement: { type: 'none' }, order: 17,
   abilities: [cutter, wall, extreme, deflection],
 })

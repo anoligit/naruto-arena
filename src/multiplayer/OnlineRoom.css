@@ -22,3 +22,10 @@
   .online-room { margin: 16px 8px; padding: 20px; }
   .online-room input:not([type='radio']), .online-room select { min-width: 0; max-width: 100%; font-size: 16px; }
 }
+
+.online-recovery { position: fixed; top: 4px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); z-index: 90; padding: 6px 10px; background: #fff6db; border: 1px solid #70582a; color: #222; font: 700 12px/1.3 var(--game-font); text-align: center; }
+.online-recovery button { margin-left: 8px; }
+.quick-match { text-align: center; }
+.quick-match-team { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+.quick-match-team img { width: 64px; height: 64px; object-fit: cover; border: 1px solid #70582a; }
+.quick-match button { margin: 6px; }

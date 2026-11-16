@@ -1,3 +1,5 @@
+import { togglePreselection } from '../preselection'
+import { energyTotal } from '../energy'
 import { characters } from '../../data/characters'
 import { energyDisplayOrder, createEmptyEnergyPool } from '../energy'
 import { getActiveStatuses } from '../effects'
@@ -38,6 +40,17 @@ function modifierValue(modifier: StatusModifier): number {
     case 'life-link': return -8
     case 'healing-bonus': return modifier.amount * .4
     case 'incoming-damage-cap': return 8
+    case 'cooldown-reduction': return modifier.amount * 4
+    case 'heal-on-new-skill-damage': return modifier.amount * .4
+    case 'revive-on-death': return 20
+    case 'forced-target': return -5
+    case 'delay-next-harmful': return -8
+    case 'energy-removal-reduction': return -modifier.amount * 3
+    case 'on-allied-damage': return -modifier.amount
+    case 'intercept-target': return 8
+    case 'counter-damage-shield': return 10
+    case 'random-harmful-target': return -5
+    case 'harmful-skills-heal': return -20
     case 'cooldown-increase': return -modifier.amount * 4
     case 'ignore-healing': return -5
     case 'skill-cost-reduction': return modifier.random * 5
@@ -139,6 +152,19 @@ export function planComputerTurn(battle: BattleState, now: number): ComputerPlan
 export function runComputerTurn(session: LocalBattleSession, now: number): LocalBattleSession {
   const fresh = tickSession(session, now)
   if (fresh.battle.activePlayerId !== trainingRules.computerPlayerId || fresh.battle.phase !== 'planning' || fresh.surrenderPending || fresh.exchangeOpen) return fresh
+  // As opções da invocação são escolhas gratuitas, anteriores à ação da IA.
+  for (const source of fresh.battle.players[trainingRules.computerPlayerId].team) {
+    const summon = getBattleSkills(fresh.battle, source).find(skill => skill.summonSelections)
+    if (!summon) continue
+    for (const option of getBattleSkills(fresh.battle, source).filter(skill => skill.preselection)) {
+      const current = fresh.battle.players[trainingRules.computerPlayerId].team.find(member => member.instanceId === source.instanceId)!
+      if (current.selectedOptions?.includes(option.id)) continue
+      const needed = Object.values(summon.cost.specific ?? {}).reduce((sum, amount) => sum + amount, 0) + (summon.cost.random ?? 0) + ((current.selectedOptions?.length ?? 0) + 1) * summon.summonSelections!.randomPerOption
+      if (needed > energyTotal(fresh.battle.players[trainingRules.computerPlayerId].energy)) break
+      const selected = togglePreselection(fresh.battle, trainingRules.computerPlayerId, source.instanceId, option.id, now)
+      if (selected) fresh.battle = selected
+    }
+  }
   const plan = planComputerTurn(fresh.battle, now)
   const actions = buildConfirmedActions(fresh.battle, plan.queue, plan.payment)
   // A execução real respeita inclusive efeitos ocultos. Não tenta novos alvos

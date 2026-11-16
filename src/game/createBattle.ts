@@ -1,3 +1,4 @@
+import { applyHealthPassives } from './effects/passives'
 import { getCompleteTeam } from './teamRules'
 import { TURN_DURATION_MS } from './rules'
 import type { Character } from '../data/characters'
@@ -74,7 +75,7 @@ now: number = Date.now()
     true
   )
 
-  return {
+  const state: BattleState = {
     players,
     counterReports: [],
     activePlayerId: startingPlayerId,
@@ -83,4 +84,6 @@ now: number = Date.now()
     phase: 'planning',
     winnerId: null,
   }
+  applyHealthPassives(state, true)
+  return state
 }

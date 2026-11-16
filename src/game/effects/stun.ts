@@ -8,6 +8,6 @@ export function isStunnedByModifiers(modifiers: StatusModifier[], skill: SkillDe
   modifiers = filterIgnoredDefenses(modifiers)
   const immune = modifiers.some(modifier => modifier.type === 'stun-immunity' || modifier.type === 'harmful-effect-immunity')
   return modifiers.some(modifier => modifier.type === 'stun' && (!immune || modifier.ignoresImmunity) &&
-    (!modifier.scope || (skill !== undefined && isHarmfulSkill(skill))) &&
+    (!modifier.scope || (skill !== undefined && (modifier.scope === 'helpful' ? !isHarmfulSkill(skill) : isHarmfulSkill(skill)))) &&
     (!modifier.classes || (skill !== undefined && matchesSkillClasses(skill.classes, modifier.classes))))
 }

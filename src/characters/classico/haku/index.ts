@@ -1,10 +1,14 @@
 import image0 from './haku_char_1.jpg'
+import missionImage from './Haku_mission.jpg'
 import image1 from './haku_skill_1_(flying_water_needles_of_death).jpg'
 import image2 from './haku_skill_2_(acupuncture).jpg'
 import image3 from './haku_skill_3_(demonic_ice_mirrors).jpg'
 import image4 from './haku_skill_4_(mirror_transfer).jpg'
 import { defineCharacter } from '../../definition'
 import type { AbilityDefinition } from '../../definition'
+
+// FOTO DA MISSÃO: o import missionImage acima aponta para Haku_mission.jpg.
+
 
 // HABILIDADE 1 — Flying Water Needles of Death
 const ability1: AbilityDefinition = {
@@ -264,8 +268,24 @@ export default defineCharacter({
   "image": image0,
   "description": "O único sobrevivente do clã Yuki e subordinado de Zabuza, Haku, apesar de jovem, possui força potencial suficiente para superar quase qualquer ninja. Usando sua linhagem sanguínea baseada em gelo e sua inteligência, Haku pode atacar e se defender quase simultaneamente.",
   "unlockRequirement": {
-    "type": "none"
+    "type": "mission",
+    "missionId": "haku"
   },
-  "order": 112,
+  // Edite a missão AQUI. Tela, descrições e validação do servidor leem este bloco.
+  mission: {
+    id: 'haku', // Identificador permanente: mantenha para preservar o progresso salvo.
+    name: 'A Neve Esquecida pela Névoa', // Nome da missão: pode alterar.
+    category: 'Missões D e C',
+    image: missionImage,
+    minimumRank: 'Genin',
+    minimumLevel: 6,
+    prerequisiteMissionIds: [], // Sem outra missão como requisito.
+    objective: {
+      type: 'consecutive-wins',
+      consecutiveWins: 2,
+      charactersAnyOf: ['classico-naruto', 'classico-sasuke'],
+    },
+  },
+  "order": 22,
   abilities: [ability1, ability2, ability3, ability4],
 })

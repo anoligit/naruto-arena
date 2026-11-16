@@ -4,7 +4,7 @@ import { getRemainingCooldown } from './cooldown'
 import { characters } from '../data/characters'
 import { paySkillCost } from './energy/index'
 import { statuses } from './effects'
-import { getActiveStatuses, isInvulnerableToSkill, isStunnedForSkill } from './effects'
+import { getActiveModifiers, getActiveStatuses, isInvulnerableToSkill, isStunnedForSkill } from './effects'
 import { getBattleSkills, getEffectiveSkill } from './skillCatalog'
 import type {
   BattleCharacter,
@@ -83,6 +83,7 @@ export function validateSkillUse(
     ?.skillDefinitions?.find((definition) => definition.id === request.skillId)
   if (!definition) return fail('skill-not-found')
   const skill = getEffectiveSkill(state, character, definition)
+  if (skill.preselection || (skill.replayPrevious && !character.memory?.previousSkill) || (skill.requiredStoredSkills && (character.memory?.storedSkills?.length ?? 0) < skill.requiredStoredSkills) || (skill.summonSelections && !character.selectedOptions?.length)) return fail('requirements-not-met')
   if (skill.implementationPending || (skill.maxUserHealth !== undefined && character.health > skill.maxUserHealth)) return fail('requirements-not-met')
   if (skill.maxUses !== undefined && (character.skillUses?.[skill.id] ?? 0) >= skill.maxUses) return fail('requirements-not-met')
   if (isStunnedForSkill(state, character, skill)) return fail('stunned')
@@ -92,6 +93,12 @@ export function validateSkillUse(
 
   for (const requirement of skill.requirements ?? []) {
     switch (requirement.type) {
+      case 'has-revival':
+        if (!getActiveModifiers(state, character).some(modifier => modifier.type === 'revive-on-death' && (modifier.uses ?? 1) > 0)) return fail('requirements-not-met')
+        break
+      case 'status-uses':
+        if (!getActiveStatuses(state, character).some(active => active.statusId === requirement.statusId && (active.remainingUses ?? 0) >= (requirement.count ?? 1))) return fail('requirements-not-met')
+        break
       case 'lacks-status':
         if (getActiveStatuses(state, character).some(status => status.statusId === requirement.statusId)) return fail('requirements-not-met')
         break
@@ -124,6 +131,8 @@ export function validateSkillUse(
     (skill.target === 'self-or-enemy' && target.instanceId !== character.instanceId && !enemyTarget)
   ) return fail('invalid-target')
   if (isIsolatedFrom(state, target, character)) return fail('target-invulnerable')
+  const forced = getActiveStatuses(state, character).find(active => statuses.find(status => status.id === active.statusId)?.modifiers.some(modifier => modifier.type === 'forced-target'))
+  if (forced && target.instanceId !== forced.linkedTargetInstanceId) return fail('invalid-target')
   if (hasUnknownStatus(target)) return fail('unknown-status')
   if (skill.targetMustHaveStatus && !getActiveStatuses(state, target).some(active => active.statusId === skill.targetMustHaveStatus!.statusId && (!skill.targetMustHaveStatus!.fromSourceOnly || active.sourceCharacterId === character.instanceId))) return fail('requirements-not-met')
   if (skill.targetMustLackStatus && getActiveStatuses(state, target).some(active => active.statusId === skill.targetMustLackStatus)) return fail('target-already-affected')

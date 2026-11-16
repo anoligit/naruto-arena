@@ -1482,3 +1482,62 @@
   .finish-available-row, .finish-consume-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .finish-row-label { grid-column: 1 / -1; }
 }
+
+/* A seleção e a batalha compartilham a consulta no desktop. */
+@media (min-width: 721px) {
+  .battle-inspection,
+  .battle-inspection.character-inspection {
+    grid-template-columns: 104px minmax(0, 1fr) 38px;
+    grid-template-rows: max-content max-content max-content minmax(0, 1fr);
+    align-content: start;
+    gap: 4px 14px;
+    overflow: auto;
+  }
+
+  .battle-inspection .inspection-summary { display: contents; }
+  .battle-inspection .inspection-summary .inspection-image {
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    align-self: start;
+  }
+  .battle-inspection .inspection-image,
+  .battle-inspection .inspection-image img { width: 104px; height: 104px; }
+  .battle-inspection .inspection-heading { grid-column: 2; grid-row: 1; }
+  .battle-inspection .inspection-copy {
+    grid-column: 2;
+    grid-row: 2;
+    overflow: visible;
+  }
+  .battle-inspection .inspection-description p { text-align: left; }
+  .battle-inspection .inspection-facts {
+    grid-column: 2;
+    grid-row: 3;
+    border: 0;
+    padding: 2px 0 0;
+  }
+  .battle-inspection .inspection-cooldown { border: 0; padding-left: 8px; }
+  .battle-inspection .inspection-shortcuts {
+    display: flex;
+    grid-column: 3;
+    grid-row: 1 / span 4;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-self: start;
+    align-items: center;
+    justify-content: start;
+    padding: 0 0 0 8px;
+    border-left: 1px solid #b6a174;
+    overflow: visible;
+  }
+}
+
+/* Efeitos já aplicados: referência visual, sem custo ou controles de ordenação. */
+.finish-queue .finish-ongoing { background: #ddd0af; border-color: #a29372; color: #514730; }
+.finish-ongoing img { filter: brightness(.65) saturate(.4); }
+.finish-ongoing-label { font-size: 9px; text-align: center; }
+.finish-ongoing-note { display: block; font-size: 10px; line-height: 1.2; }
+.finish-ongoing-count { font-size: 12px; text-align: center; }
+@media (max-width: 720px) {
+  .finish-ongoing-label { font-size: 8px; }
+  .finish-ongoing-note { font-size: 9px; }
+}

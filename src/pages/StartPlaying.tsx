@@ -1,16 +1,25 @@
+import MissionsPage from '../missions/MissionsPage'
+import { canUseCharacter, characterUnlockText } from '../missions/progression'
 import MobileSelectionNavigation, { type SelectionTab } from './selection/MobileSelectionNavigation'
 import CharacterInspectionContent from './CharacterInspectionContent'
-import { BattleProfileSummary } from './BattlePlayerDetails'
+import CharacterDetailsPanel from './selection/CharacterDetailsPanel'
 import { useMobileBattle } from './useMobileBattle'
 import OnlineRoom from '../multiplayer/OnlineRoom'
+import QuickMatch from '../multiplayer/QuickMatch'
+import TrainingMatch from '../multiplayer/TrainingMatch'
+import { useMatchRecovery } from '../multiplayer/useMatchRecovery'
 import { invitationCode } from '../multiplayer/invitation'
 import PlayerProfileCard from '../player/PlayerProfileCard'
-import { playerProfile } from '../player/profile'
+import AccountPage from '../account/AccountPage'
+import AccountSettings from '../account/AccountSettings'
+import AccountLinks from '../account/AccountLinks'
+import { useAccount } from '../account/useAccount'
 import { imageUrl } from '../utils/imageUrl'
 
-import { Fragment, useEffect, useId, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useId, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction, DragEvent } from 'react'
-import { characters } from '../data/characters'
+import { characters as registeredCharacters } from '../data/characters'
+import { orderCharacterCatalog } from '../characters/catalogOrder'
 import type { Character } from '../data/characters'
 import { createTrainingBattle } from '../game/training/createTrainingBattle'
 import { createBattle } from '../game/createBattle'
@@ -26,9 +35,15 @@ type StartPlayingProps = {
 }
 
 function StartPlaying({ team, setTeam }: StartPlayingProps) {
+  const { profile: playerProfile, account } = useAccount()
+  const characters = orderCharacterCatalog(registeredCharacters)
+  const unlocked = (character: Character) => canUseCharacter(character.id,account?.progression)
+  const { recovery, checking, clearRecovery } = useMatchRecovery(account?.id)
   const [localBattle, setLocalBattle] = useState<{ state: BattleState; mode: BattleMode } | null>(null)
+  const [trainingTeam, setTrainingTeam] = useState<Character[] | null>(null)
+  const [quickTeam, setQuickTeam] = useState<Character[] | null>(null)
   const [onlineTeam, setOnlineTeam] = useState<Character[] | null>(null)
-  const completeTeam = getCompleteTeam(team)
+  const completeTeam = team.every(character=>character && unlocked(character)) ? getCompleteTeam(team) : null
   const mobile = useMobileBattle()
   const [tab, setTab] = useState<SelectionTab>('characters')
   const [search, setSearch] = useState('')
@@ -45,8 +60,60 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
 
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
+  const catalogScroll = useRef<HTMLDivElement>(null)
+  const inspectionSlot = useRef<HTMLDivElement>(null)
+  const [descriptionAbove, setDescriptionAbove] = useState(false)
+  const descriptionDirection = useRef(false)
+
+  // A altura anima entre os tamanhos reais, inclusive ao trocar de habilidade.
+  // A fileira de origem tem prioridade sobre a centralização da descrição.
+  useLayoutEffect(() => {
+    const scroller = catalogScroll.current, panel = inspectionSlot.current
+    const content = panel?.querySelector<HTMLElement>('.selection-description-overlay')
+    if (!mobile || !selectedCharacter || !scroller || !panel || !content) return
+    let frame = 0, until = 0
+    const anchor = () => {
+      const icon = [...scroller.querySelectorAll<HTMLButtonElement>('.character')]
+        .find(button => button.dataset.characterId === selectedCharacter.id)
+      if (!icon) { panel.classList.remove('has-character-anchor'); return }
+      panel.classList.add('has-character-anchor')
+      const bounds = scroller.getBoundingClientRect(), box = panel.getBoundingClientRect(), row = icon.getBoundingClientRect()
+      panel.style.setProperty('--pointer-x', `${Math.max(14, Math.min(box.width - 14, row.left + row.width / 2 - box.left))}px`)
+      const top = Math.min(box.top, row.top), bottom = Math.max(box.bottom, row.bottom)
+      const fits = bottom - top <= bounds.height - 12
+      const visibleTop = fits ? top : row.top, visibleBottom = fits ? bottom : row.bottom
+      if (visibleBottom > bounds.bottom - 6) scroller.scrollTop += visibleBottom - bounds.bottom + 6
+      else if (visibleTop < bounds.top + 6) scroller.scrollTop += visibleTop - bounds.top - 6
+    }
+    const follow = () => {
+      anchor()
+      if (performance.now() < until) frame = requestAnimationFrame(follow)
+    }
+    const resize = () => {
+      panel.style.height = `${content.getBoundingClientRect().height + 16}px`
+      until = performance.now() + 300
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(follow)
+    }
+    const observer = new ResizeObserver(resize)
+    observer.observe(content)
+    // Deixa a altura inicial zero ser desenhada antes de expandir o balão.
+    frame = requestAnimationFrame(resize)
+    const viewportObserver = new ResizeObserver(resize)
+    viewportObserver.observe(scroller)
+    return () => { observer.disconnect(); viewportObserver.disconnect(); cancelAnimationFrame(frame) }
+  }, [mobile, selectedCharacter, selectedSkill, tab])
+
+  function chooseDescriptionDirection(button: HTMLButtonElement) {
+    const bounds = catalogScroll.current?.getBoundingClientRect()
+    if (!mobile || !bounds) return
+    const character = button.getBoundingClientRect()
+    descriptionDirection.current = (character.top + character.bottom) / 2 > (bounds.top + bounds.bottom) / 2
+  }
+
 
   function addToTeam(character: Character) {
+    if (!unlocked(character)) return
     setTeam((currentTeam) => {
       if (currentTeam.some((member) => member?.id === character.id)) {
         return currentTeam
@@ -66,6 +133,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
   }
 
   function placeInSlot(character: Character, slotIndex: number) {
+    if (!unlocked(character)) return
     setTeam((currentTeam) => {
       if (currentTeam.some((member) => member?.id === character.id)) {
         return currentTeam
@@ -119,6 +187,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
   }
 
   function toggleCharacterDetails(character: Character) {
+  setDescriptionAbove(descriptionDirection.current)
   setSelectedSkill(null)
   setSelectedCharacter((current) =>
     current?.id === character.id ? null : character
@@ -127,13 +196,17 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
 
   function startBattle(mode: BattleMode) {
     const readyTeam = getCompleteTeam(team)
-    if (!readyTeam) return
+    if (!readyTeam || readyTeam.some(character=>!unlocked(character))) return
+    if (mode === 'training' && account) { setTrainingTeam(readyTeam); return }
     // Local mirror match only; online modes will use a separate opponent later.
     const state = mode === 'training' ? createTrainingBattle(readyTeam) : createBattle(readyTeam, readyTeam, 'player-1', 100)
     setLocalBattle({ state, mode })
   }
 
-  if (onlineTeam) return <OnlineRoom team={onlineTeam} onBack={() => setOnlineTeam(null)} />
+  if (onlineTeam || recovery) return <OnlineRoom team={onlineTeam ?? []} recovery={recovery} onBack={() => { setOnlineTeam(null); clearRecovery() }} />
+  if (trainingTeam) return <TrainingMatch team={trainingTeam} onBack={() => setTrainingTeam(null)} />
+  if (quickTeam) return <QuickMatch team={quickTeam} onBack={() => setQuickTeam(null)} />
+  if (checking) return <main className="online-room" role="status">Verificando partida em andamento...</main>
 
   if (localBattle) {
     return <LocalBattle initialState={localBattle.state} mode={localBattle.mode} onContinue={() => {
@@ -173,19 +246,22 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
     setCatalogPage(page)
   }
 
-  const mobileDescription = selectedCharacter && <div className="selection-description-overlay">
+  const mobileDescription = selectedCharacter && <div key={selectedCharacter.id} ref={inspectionSlot}
+    className={`selection-description-slot ${descriptionAbove ? 'opens-above' : 'opens-below'}`}>
+    <div className="selection-description-reveal"><div className="selection-description-overlay">
     <CharacterInspectionContent definition={selectedCharacter}
       skill={selectedCharacter.skillDefinitions.find(entry => entry.name === selectedSkill)}
-      skillName={selectedSkill} onSkill={setSelectedSkill} showUnlock />
-  </div>
+      skillName={selectedSkill} onSkill={setSelectedSkill} showUnlock unlockText={characterUnlockText(selectedCharacter.id,account?.progression)} />
+  </div></div></div>
   const selectedIndex = visibleCharacters.findIndex(character => character.id === selectedCharacter?.id)
+  const descriptionBeforeIndex = Math.floor(selectedIndex / 4) * 4
   const descriptionAfterIndex = Math.min(Math.floor(selectedIndex / 4) * 4 + 3, visibleCharacters.length - 1)
 
   const selectionMenu = (
       <nav className="game-menu" aria-label="Modos de partida">
         {!mobile && <span className="selection-mode-status">{invitationCode() ? `Sala ${invitationCode()} · ${completeTeam ? 'Time pronto: entre em Partida privada online' : 'Selecione 3 personagens para entrar'}` : completeTeam ? 'Time pronto para jogar' : 'Selecione 3 personagens diferentes para jogar'}</span>}
         <button disabled={!completeTeam} title="Local test · no ranking" onClick={() => startBattle('ladder')}>{mobile ? 'Ranqueada' : 'Start Ladder Game'}</button>
-        <button disabled={!completeTeam} title="Local test · two players on this computer" onClick={() => startBattle('quick')}>{mobile ? 'Rápida' : 'Start Quick Game'}</button>
+        <button disabled={!completeTeam} title="Encontrar um adversário online" onClick={() => { if (completeTeam) setQuickTeam(completeTeam) }}>{mobile ? 'Rápida' : 'Start Quick Game'}</button>
         <button disabled={!completeTeam} title="Criar ou entrar numa sala privada para dois jogadores" onClick={() => { if (completeTeam) setOnlineTeam(completeTeam) }}>{mobile ? 'Privada' : 'Partida privada online'}</button>
         <button disabled={!completeTeam} title="Enfrente o adversário controlado pelo jogo" onClick={() => startBattle('training')}>Treinamento</button>
       </nav>
@@ -195,18 +271,16 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
       onClick={(event) => {
         const target = event.target as HTMLElement
         if (!target.closest('.selection-play-anchor')) setPlayMenuOpen(false)
-        if (target.closest('button, a, input, select, textarea, .selection-character-details, .selection-description-overlay')) return
+        if (target.closest('button, a, input, select, textarea, .selection-character-details, .character-details, .selection-description-overlay')) return
         setSelectedSkill(null)
         setSelectedCharacter(null)
       }} onKeyDown={event => { if (event.key === 'Escape') setPlayMenuOpen(false) }}>
-      {!mobile && <div className="selection-character-details" style={{ visibility: selectedCharacter ? 'visible' : 'hidden' }}>
-        {selectedCharacter && <CharacterInspectionContent definition={selectedCharacter}
-          skill={selectedCharacter.skillDefinitions.find(entry => entry.name === selectedSkill)}
-          skillName={selectedSkill} onSkill={setSelectedSkill} showUnlock />}
-      </div>}
+      {!mobile && <CharacterDetailsPanel character={selectedCharacter} selectedSkill={selectedSkill}
+        onSkillChange={setSelectedSkill}
+        unlockText={selectedCharacter ? characterUnlockText(selectedCharacter.id,account?.progression) : undefined} />}
       {!mobile && selectionMenu}
       {mobile && tab !== 'characters' && <section className="selection-tab-page">
-        {tab === 'profile' ? <><h2>Perfil</h2><BattleProfileSummary profile={playerProfile} /></> : <><h2>{tab === 'settings' ? 'Configurações' : 'Missões'}</h2><p>Em breve</p></>}
+        {tab === 'profile' ? <AccountPage inline /> : tab === 'settings' ? <AccountSettings inline /> : <MissionsPage />}
       </section>}
       {mobile && <MobileSelectionNavigation active={tab} onChange={next => { cancelCatalogTap(); setPlayMenuOpen(false); setTab(next) }} onExit={() => {
         if (window.confirm('Deseja realmente sair do jogo?')) window.location.hash = 'startpage'
@@ -219,28 +293,32 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
           <input type="search" aria-label="Buscar personagem" placeholder="Buscar personagem" value={search} onChange={event => { cancelCatalogTap(); setSearch(event.target.value); setCatalogPage(0) }} /></div>
           <button className="selection-filter-missions" onClick={() => setTab('missions')}>Missões</button>
         </div>}
-        <div
+        <div ref={catalogScroll}
           className="character-grid"
           onDragOver={(event) => event.preventDefault()}
           onDrop={handleReturnToCatalog}
         >
           {mobile && selectedIndex < 0 && mobileDescription}
           {visibleCharacters.map((character, catalogIndex) => {
+            const isLocked = !unlocked(character)
             const isInTeam = team.some(
               (member) => member?.id === character.id
             )
 
             return (
-              <Fragment key={character.id}><button
-                title={character.name}
+              <Fragment key={character.id}>
+              {mobile && selectedIndex >= 0 && descriptionAbove && catalogIndex === descriptionBeforeIndex && mobileDescription}
+              <button
+                title={`${character.name}${isLocked ? ' · Bloqueado' : ''}`}
                 aria-label={character.name}
-                className={`character ${isInTeam ? 'in-team' : ''}`}
+                data-character-id={character.id}
+                className={`character ${isInTeam ? 'in-team' : ''} ${isLocked ? 'is-locked' : ''}`}
                 aria-pressed={selectedCharacter?.id === character.id}
-                draggable={!isInTeam}
+                draggable={!isInTeam && !isLocked}
                 onMouseDown={(event) => {
                   if (event.button !== 0) event.preventDefault()
                 }}
-                onClick={(event) => selectCatalogCharacter(character, event.detail, event.timeStamp)}
+                onClick={(event) => { chooseDescriptionDirection(event.currentTarget); selectCatalogCharacter(character, event.detail, event.timeStamp) }}
                 onDoubleClick={() => {
                   cancelCatalogTap()
                   setSelectedSkill(null)
@@ -264,9 +342,8 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
                 ) : (
                   character.name
                 )}
-
               </button>
-              {mobile && selectedIndex >= 0 && catalogIndex === descriptionAfterIndex && mobileDescription}
+              {mobile && selectedIndex >= 0 && !descriptionAbove && catalogIndex === descriptionAfterIndex && mobileDescription}
               </Fragment>
             )
           })}
@@ -277,7 +354,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
         {mobile && !visibleCharacters.length && <p role="status">Nenhum personagem encontrado.</p>}
         </div>
         <aside className="team-panel">
-          {!mobile && <PlayerProfileCard profile={playerProfile} />}
+          {!mobile && <><PlayerProfileCard profile={playerProfile} /><AccountLinks /></>}
           {mobile && <nav className="selection-pagination" aria-label="Páginas de personagens">
             <button type="button" disabled={currentPage === 0} onClick={() => changeCatalogPage(currentPage - 1)}>← Anterior</button>
             <button type="button" disabled={currentPage === pageCount - 1} onClick={() => changeCatalogPage(currentPage + 1)}>Próxima →</button>
@@ -287,7 +364,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
             <div className="selection-team-heading">Equipe</div>
             {mobile && <button className="add-character selection-team-add" aria-label="Adicionar personagem consultado ao time"
               onClick={() => { if (selectedCharacter) addToTeam(selectedCharacter) }}
-              disabled={!selectedCharacter || team.every(Boolean) || team.some(member => member?.id === selectedCharacter.id)}>+</button>}
+              disabled={!selectedCharacter || !unlocked(selectedCharacter) || team.every(Boolean) || team.some(member => member?.id === selectedCharacter.id)}>+</button>}
           </div>
           <div className="team-slots">
             {team.map((member, index) => (
@@ -345,7 +422,7 @@ onDoubleClick={() => {
             {completeTeam ? 'Seu time está pronto para jogar' : `Selecione 3 personagens (${team.filter(Boolean).length}/3)`}
           </p>}
           {!mobile && <button className="add-character" onClick={() => { if (selectedCharacter) addToTeam(selectedCharacter) }}
-            disabled={!selectedCharacter || team.every(Boolean) || team.some((member) => member?.id === selectedCharacter.id)}>
+            disabled={!selectedCharacter || !unlocked(selectedCharacter) || team.every(Boolean) || team.some((member) => member?.id === selectedCharacter.id)}>
             Adicionar ao time
           </button>}
           </div>

@@ -11,9 +11,10 @@ type Props = {
   character: Character | null
   selectedSkill: string | null
   onSkillChange: (skill: string | null) => void
+  unlockText?: string
 }
 
-export default function CharacterDetailsPanel({ character, selectedSkill, onSkillChange }: Props) {
+export default function CharacterDetailsPanel({ character, selectedSkill, onSkillChange, unlockText }: Props) {
   const skill = character?.skillDefinitions?.find((entry) => entry.name === selectedSkill)
   const image = selectedSkill ? skill?.image : character?.image
   const description = selectedSkill
@@ -47,8 +48,8 @@ export default function CharacterDetailsPanel({ character, selectedSkill, onSkil
           </header>
           <div className="description-body" tabIndex={0} aria-label="Descrição completa">
             <p>{description}</p>
-            {!selectedSkill && character.unlockRequirement && <p className="character-unlock">
-              <strong>Requisito para desbloquear:</strong> {describeUnlockRequirement(character.unlockRequirement)}
+            {!selectedSkill && (unlockText || character.unlockRequirement) && <p className="character-unlock">
+              <strong>Requisito para desbloquear:</strong> {unlockText ?? describeUnlockRequirement(character.unlockRequirement)}
             </p>}
             {skill && character.skillDefinitions?.filter((candidate) => candidate.replacement?.skillId === skill.id).map((candidate) =>
               <button key={candidate.id} className="alternative-skill-link" onClick={() => onSkillChange(candidate.name)}>

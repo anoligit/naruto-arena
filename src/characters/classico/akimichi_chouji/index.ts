@@ -99,6 +99,6 @@ const butterfly: AbilityDefinition = { skill: {
 export default defineCharacter({
   id, name: 'Akimichi Chouji', image: image0,
   description: "Um Genin da Equipe 10, Chouji é um membro do clã Akimichi, um grande comedor e um amigo próximo de seus aliados. Embora seja naturalmente forte, Chouji é capaz de sacrificar sua própria vida usando pílulas especiais de seu clã para se tornar extremamente poderoso.",
-  unlockRequirement: { type: 'none' }, order: 104,
+  unlockRequirement: { type: 'none' }, order: 8,
   abilities: [punch, tank, pills, block, butterfly],
 })

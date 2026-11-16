@@ -1,3 +1,4 @@
+import { characters } from '../data/characters'
 import { applyHealthPassives } from './effects/passives'
 import { executeSkillEffects } from './effects/execution'
 import { collectPeriodicDamage } from './effects/periodic'
@@ -78,6 +79,17 @@ export function resolveTurn(
 
     const error = executeSkillEffects({ state: working, playerId: player.id, source, target, skill, actionIndex, damageEvents, random: options.random })
     if (error) return { ok: false, state, reason: error, actionIndex }
+    if (skill.replayPrevious && source.memory?.previousSkill) source.skillReadyOnTurn[source.memory.previousSkill.id] = player.turnsStarted + skill.replayPrevious.lockOriginalTurns + 1
+    if (skill.summonSelections) {
+      const definitions = characters.find(character => character.id === source.characterId)!.skillDefinitions
+      for (const option of definitions.filter(option => source.selectedOptions?.includes(option.id))) {
+        const baseId = option.replacement?.skillId ?? option.id
+        for (const linked of definitions.filter(skill => skill.id === baseId || skill.replacement?.skillId === baseId)) source.skillReadyOnTurn[linked.id] = player.turnsStarted + skill.summonSelections.cooldownTurns + 1
+      }
+      source.selectedOptions = []
+    }
+    if (characters.find(character => character.id === source.characterId)?.skillDefinitions.some(skill => skill.replayPrevious)) source.memory = { ...source.memory, previousSkill: skill.replayPrevious ? source.memory?.previousSkill : structuredClone(skill), previousTurn: player.turnsStarted }
+    if (skill.target === 'enemy' || skill.target === 'ally-or-enemy') source.lastHarmfulTurn = player.turnsStarted
     triggerSkillUseDamage(source, activeBefore, damageEvents)
     for (const owner of Object.values(working.players)) {
       for (const member of owner.team) member.statuses = getActiveStatuses(working, member)

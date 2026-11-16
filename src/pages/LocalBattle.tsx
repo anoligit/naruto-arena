@@ -3,6 +3,8 @@ import TurnConfirmationContent from './TurnConfirmationContent'
 import BattleTurnControls from './BattleTurnControls'
 import { useMobileBattle } from './useMobileBattle'
 import BattlePlayerHeader from './BattlePlayerHeader'
+import { useAccount } from '../account/useAccount'
+import { avatars } from '../account/avatarCatalog'
 import { createBattleProfile } from '../player/battleProfiles'
 import type { BattleProfiles } from '../player/battleProfiles'
 import type { RemoteBattle } from '../multiplayer/protocol'
@@ -26,7 +28,8 @@ import { cancelPlannedAction, appendAction, applyExchange, confirmSession, creat
 import type { BattleMode, LocalBattleSession } from '../game/localBattleSession'
 import { getQueueBudget, skillForAction } from '../game/plannedActions'
 import type { PlannedAction } from '../game/plannedActions'
-import { getBattleSkillNames } from '../game/skillCatalog'
+import { togglePreselection } from '../game/preselection'
+import { getBattleSkills, getBattleSkillNames } from '../game/skillCatalog'
 import { getSkillAvailability } from '../game/skillAvailability'
 import type { BattleCharacter, BattleState, EnergyPool, PlayerId } from '../game/types'
 import BattleInspectionPanel from './BattleInspection'
@@ -81,12 +84,11 @@ function SkillButton({ battle, queue, member, ownerId, skillName, pending, now, 
   readOnly?: boolean
   onChoose: (member: BattleCharacter, owner: PlayerId, name: string) => void
 }) {
-  const definition = definitionOf(member)
-  const skill = definition?.skillDefinitions?.find((entry) => entry.name === skillName)
+  const skill = getBattleSkills(battle, member).find(entry => entry.name === skillName)
   const availability = readOnly
     ? { usable: false, reason: 'not-your-turn', cooldown: 0, targetInstanceIds: [] }
     : getSkillAvailability(battle, queue, ownerId, member.instanceId, skill?.id ?? '', now)
-  const armed = pending?.characterInstanceId === member.instanceId && pending.skillId === skill?.id
+  const armed = Boolean(skill && (member.selectedOptions?.includes(skill.id) || pending?.characterInstanceId === member.instanceId && pending.skillId === skill.id))
   const blocked = availability.cooldown > 0 ? ' on-cooldown' : readOnly ? ' use-blocked' : availability.reason === 'invalid-payment' ? ' insufficient-energy' : availability.usable ? '' : ' use-blocked'
   return <button type="button" className={`battle-skill${blocked}${armed ? ' armed' : ''}`}
     title={`${skillName} · ${readOnly ? 'Habilidade do adversário · somente consulta.' : availabilityText(availability.reason, availability.cooldown)}`}
@@ -133,12 +135,14 @@ function CharacterIndicators({ battle, queue, member, viewerId, inspect }: {
       origin={indicator.origin}
       planned={indicator.planned}
       record={indicator.counterReport}
+      stackCount={indicator.stackCount}
       onConsult={() => inspect(indicator.sourceCharacterId, indicator.sourceSkillName)}
     />)}
   </div>
 }
 
 export default function LocalBattle({ initialState, mode, onContinue, remote }: { initialState: BattleState; mode: BattleMode; onContinue: () => void; remote?: RemoteBattle }) {
+  const { account, profile: accountProfile } = useAccount()
   const mobileLayout = useMobileBattle()
   useLayoutEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }) }, [])
   const training = mode === 'training'
@@ -183,8 +187,8 @@ export default function LocalBattle({ initialState, mode, onContinue, remote }: 
     'player-2': training ? 'Adversário · Jogador 2' : playerName('player-2'),
   }
   const profiles: BattleProfiles = {
-    'player-1': remote?.profiles?.['player-1'] ?? createBattleProfile(remote?.names['player-1'] ?? localNames['player-1'], battle.players['player-1'].team[0].characterId),
-    'player-2': remote?.profiles?.['player-2'] ?? createBattleProfile(remote?.names['player-2'] ?? localNames['player-2'], battle.players['player-2'].team[0].characterId),
+    'player-1': remote?.profiles?.['player-1'] ?? (!remote && account ? accountProfile : null) ?? createBattleProfile(remote?.names['player-1'] ?? localNames['player-1'], avatars[0].id),
+    'player-2': remote?.profiles?.['player-2'] ?? createBattleProfile(remote?.names['player-2'] ?? localNames['player-2'], avatars[1].id),
   }
   const budget = opponentTurn ? null : getQueueBudget(battle, queue)
   const available = opponentTurn ? active.energy : budget?.afterSpecific ?? createEmptyEnergyPool()
@@ -194,7 +198,7 @@ export default function LocalBattle({ initialState, mode, onContinue, remote }: 
   const modalOpen = battle.phase === 'finished' || (battle.phase === 'confirmation' && !mobileLayout) || session.surrenderPending || session.exchangeOpen
 
   useEffect(() => {
-    if (!training || battle.activePlayerId !== trainingRules.computerPlayerId || battle.phase !== 'planning' || session.surrenderPending || session.exchangeOpen) return
+    if (online || !training || battle.activePlayerId !== trainingRules.computerPlayerId || battle.phase !== 'planning' || session.surrenderPending || session.exchangeOpen) return
     const turn = battle.turnNumber
     const timer = window.setTimeout(() => {
       const fresh = current.current
@@ -202,18 +206,23 @@ export default function LocalBattle({ initialState, mode, onContinue, remote }: 
       commit(runComputerTurn(fresh, Date.now()))
     }, trainingRules.thinkingTimeMs)
     return () => window.clearTimeout(timer)
-  }, [training, battle.activePlayerId, battle.phase, battle.turnNumber, session.surrenderPending, session.exchangeOpen, commit])
+  }, [online, training, battle.activePlayerId, battle.phase, battle.turnNumber, session.surrenderPending, session.exchangeOpen, commit])
 
   const inspect = useCallback((instanceId: string, skillName: string | null) => setInspection({ characterInstanceId: instanceId, skillName }), [])
   const chooseSkill = useCallback((member: BattleCharacter, ownerId: PlayerId, skillName: string) => {
     inspect(member.instanceId, skillName)
     if (remote) {
-      if (ownerId === remote.playerId && remote.session.battle.activePlayerId === remote.playerId && remote.session.battle.phase === 'planning' && !remote.session.exchangeOpen) remote.send({ type: 'select-skill', characterInstanceId: member.instanceId, skillId: definitionOf(member)?.skillDefinitions.find((skill) => skill.name === skillName)?.id ?? '' })
+      if (ownerId === remote.playerId && remote.session.battle.activePlayerId === remote.playerId && remote.session.battle.phase === 'planning' && !remote.session.exchangeOpen) remote.send({ type: 'select-skill', characterInstanceId: member.instanceId, skillId: getBattleSkills(remote.session.battle, member).find(skill => skill.name === skillName)?.id ?? '' })
       return
     }
     if (training && (ownerId !== trainingRules.humanPlayerId || current.current.battle.activePlayerId !== trainingRules.humanPlayerId)) return
     const fresh = tickSession(current.current, Date.now())
-    const skill = definitionOf(member)?.skillDefinitions?.find((entry) => entry.name === skillName)
+    const skill = getBattleSkills(fresh.battle, member).find(entry => entry.name === skillName)
+    if (skill?.preselection) {
+      const selected = fresh.queue.some(action => action.characterInstanceId === member.instanceId) ? null : togglePreselection(fresh.battle, ownerId, member.instanceId, skill.id, fresh.now)
+      if (selected) commit({ ...fresh, battle: selected, pending: null, error: '' })
+      return
+    }
     const usable = getSkillAvailability(fresh.battle, fresh.queue, ownerId, member.instanceId, skill?.id ?? '', fresh.now).usable
     commit({ ...fresh, error: '', notice: '', pending: usable && skill ? { characterInstanceId: member.instanceId, skillId: skill.id } : null })
   }, [commit, inspect, training, remote])
@@ -401,7 +410,7 @@ export default function LocalBattle({ initialState, mode, onContinue, remote }: 
       <div className="dialog-actions"><button onClick={confirmSurrender}>Confirmar desistência</button><button onClick={closeDialog}>Voltar à batalha</button></div>
     </section></div>}
     {battle.phase === 'finished' && <div className="battle-overlay"><section className="battle-dialog result-dialog" role="dialog" aria-modal="true" aria-labelledby="result-title" onKeyDown={dialogKeys}>
-      <h2 id="result-title" ref={dialogHeading} tabIndex={-1}>{battle.winnerId ? (training || online) ? battle.winnerId === viewerId ? 'VITÓRIA' : 'DERROTA' : 'WINNER' : 'EMPATE'}</h2><p>{battle.winnerId ? remote ? `${remote.names[battle.winnerId]} venceu a partida privada.` : training ? battle.winnerId === trainingRules.humanPlayerId ? 'Você venceu o treinamento.' : 'O adversário venceu o treinamento.' : `${playerName(battle.winnerId)} venceu a batalha local.` : 'As duas equipes foram derrotadas.'}</p><p>{online ? 'Partida privada' : training ? 'Treinamento' : 'Teste local'} · sem alterações de ranking ou missões.</p><button className="continue-button" onClick={onContinue}>CONTINUE · Voltar à seleção</button>
+      <h2 id="result-title" ref={dialogHeading} tabIndex={-1}>{battle.winnerId ? (training || online) ? battle.winnerId === viewerId ? 'VITÓRIA' : 'DERROTA' : 'WINNER' : 'EMPATE'}</h2><p>{battle.winnerId ? remote ? `${remote.names[battle.winnerId]} venceu a partida ${mode === 'quick' ? 'rápida' : training ? 'de treinamento' : 'privada'}.` : training ? battle.winnerId === trainingRules.humanPlayerId ? 'Você venceu o treinamento.' : 'O adversário venceu o treinamento.' : `${playerName(battle.winnerId)} venceu a batalha local.` : 'As duas equipes foram derrotadas.'}</p><p>{online && (mode === 'quick' || training) ? 'Resultado e progresso das missões são salvos na sua conta.' : `${online ? 'Partida privada' : training ? 'Treinamento' : 'Teste local'} · sem alterações de ranking ou missões.`}</p><button className="continue-button" onClick={onContinue}>CONTINUE · Voltar à seleção</button>
     </section></div>}
   </div>
 }

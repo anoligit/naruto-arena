@@ -82,6 +82,6 @@ const clone: AbilityDefinition = {
 export default defineCharacter({
   id: characterId, name: 'Aburame Shino', image: portrait,
   description: 'Um Genin do Time 8, Shino é o sucessor do clã Aburame e um lutador muito reservado e tático. Usando os insetos que vivem dentro de seu corpo, Shino é capaz de drenar a energia dos inimigos e proteger toda a sua equipe.',
-  unlockRequirement: { type: 'none' }, order: 102,
+  unlockRequirement: { type: 'none' }, order: 6,
   abilities: [leach, female, wall, clone],
 })

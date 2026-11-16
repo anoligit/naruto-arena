@@ -1,3 +1,4 @@
+import { resolveScheduledSkills } from './effects/scheduled'
 import { collectExpiringDamage } from './effects/expiry'
 import { settleTurnDamage } from './effects/damage'
 import { statuses, isStatusVisible } from './effects'
@@ -13,8 +14,10 @@ export type HealthPreview = Record<string, { before: number; after: number }>
 // custos, alvos e falhas, revelando sua presença mesmo sem mostrar seu nome.
 export function visibleBattleForPreview(battle: BattleState, viewerId: PlayerId): BattleState {
   const visible = structuredClone(battle)
+  visible.scheduledSkills = visible.scheduledSkills?.filter(record => record.playerId === viewerId)
   for (const player of Object.values(visible.players)) {
     for (const member of player.team) {
+      if (player.id !== viewerId) { delete member.memory; delete member.selectedOptions }
       member.statuses = member.statuses.filter((active) => {
         const definition = statuses.find((entry) => entry.id === active.statusId)
         return definition !== undefined && isStatusVisible(definition, active, viewerId, battle)
@@ -46,6 +49,7 @@ export function previewTurnHealth(
   if (!actions) return null
   const result = resolveTurn(visible, actions, now, { advanceToNextTurn: false, random: () => 0 })
   if (!result.ok) return null
+  resolveScheduledSkills(result.state, () => 0)
   settleTurnDamage(result.state, collectExpiringDamage(result.state))
 
   const preview: HealthPreview = {}

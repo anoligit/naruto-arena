@@ -6,9 +6,9 @@ import { describeUnlockRequirement } from '../missions'
 import type { Character } from '../data/characters'
 import type { SkillDefinition } from '../game/types'
 
-export default function CharacterInspectionContent({ definition, skill, skillName, onSkill, showUnlock = false }: {
+export default function CharacterInspectionContent({ definition, skill, skillName, onSkill, showUnlock = false, unlockText }: {
   definition: Character; skill?: SkillDefinition; skillName: string | null | undefined
-  onSkill?: (name: string) => void; showUnlock?: boolean
+  onSkill?: (name: string) => void; showUnlock?: boolean; unlockText?: string
 }) {
   const image = skillName ? skill?.image : definition.image
   const description = skillName
@@ -40,7 +40,7 @@ export default function CharacterInspectionContent({ definition, skill, skillNam
       </header>
       <div className="inspection-copy">
         <div className="inspection-description"><p>{description}</p>
-        {showUnlock && !skillName && <p className="character-unlock">Requisito para desbloquear: {describeUnlockRequirement(definition.unlockRequirement)}</p>}
+        {showUnlock && !skillName && <p className="character-unlock">Requisito para desbloquear: {unlockText ?? describeUnlockRequirement(definition.unlockRequirement)}</p>}
         {skill && onSkill && definition.skillDefinitions?.filter((candidate) => candidate.replacement?.skillId === skill.id).map((candidate) =>
           <button type="button" className="inspection-alternative" key={candidate.id} onClick={() => onSkill(candidate.name)}>Consultar habilidade alternativa: <strong>{candidate.name}</strong></button>
         )}

@@ -1,0 +1,35 @@
+.missions-page { padding: 12px; }
+.missions-page h1 { margin: 0 0 16px; color: #ad2029; }
+.mission-card { padding: 16px; margin-bottom: 16px; border: 1px solid #816a3a; background: #fff6db; font-size: 13px; line-height: 1.45; }
+.mission-heading { margin-bottom: 20px; }
+.mission-heading h2 { margin: 4px 0 8px; color: #ad2029; font-size: 24px; line-height: 1.15; }
+.mission-path { margin: 0; font-size: 11px; color: #65542f; }
+.mission-state { display: inline-block; font-size: 12px; }
+.mission-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "information picture" "requirements picture" "reward goals"; gap: 20px; align-items: start; }
+.mission-layout section { min-width: 0; }
+.mission-information { grid-area: information; }
+.mission-requirements { grid-area: requirements; }
+.mission-reward { grid-area: reward; }
+.mission-goals { grid-area: goals; }
+.mission-layout h3 { margin: 0 0 10px; padding-bottom: 5px; color: #ad2029; border-bottom: 1px dotted #816a3a; font-size: 15px; }
+.mission-layout dl { margin: 0; }
+.mission-layout dl div { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.mission-layout dt { font-weight: bold; }
+.mission-layout dd { margin: 0; }
+.mission-picture { grid-area: picture; margin: 0; width: 100%; align-self: stretch; display: grid; place-items: center; border: 1px solid #816a3a; background: #f4e9c7; }
+.mission-picture img { display: block; width: 100%; max-height: 300px; aspect-ratio: 3 / 2; object-fit: contain; }
+.mission-goal-text { margin: 0 0 10px; }
+.mission-account-note { font-size: 11px; }
+.mission-reward p { margin: 0 0 10px; }
+.mission-reward figure { display: inline-grid; gap: 5px; margin: 0; }
+.mission-reward img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #816a3a; }
+.account-page.missions-account-page { width: min(1040px, calc(100% - 16px)); text-transform: uppercase; }
+@media (max-width: 720px) {
+  .missions-page { padding: 6px; }
+  .mission-card { padding: 12px; font-size: 12px; }
+  .mission-heading h2 { font-size: 22px; }
+  .mission-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "information" "requirements" "picture" "goals" "reward"; gap: 16px; }
+  .mission-picture img { max-height: 220px; }
+}
+.game .character.is-locked { position: relative; }
+.game .character.is-locked img { opacity: .4; filter: grayscale(1); }

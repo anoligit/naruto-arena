@@ -14,7 +14,10 @@ export function getSkillTargets(
   if (skill.targetExpansion?.target === 'all-living-allies') return state.players[playerId].team.filter(member => member.health > 0 && !isInvulnerableToAlliedSkill(state, member, skill))
   if (!isSkillExpanded(state, source, skill)) return [primaryTarget]
   const opponentId = playerId === 'player-1' ? 'player-2' : 'player-1'
+  const forced = getActiveStatuses(state, source).find(active => statuses.find(status => status.id === active.statusId)?.modifiers.some(modifier => modifier.type === 'forced-target'))
   return state.players[opponentId].team.filter((target) =>
+    (!forced || target.instanceId === forced.linkedTargetInstanceId) &&
+    (!skill.targetMustHaveStatus || getActiveStatuses(state, target).some(active => active.statusId === skill.targetMustHaveStatus!.statusId && (!skill.targetMustHaveStatus!.fromSourceOnly || active.sourceCharacterId === source.instanceId))) &&
     target.health > 0 && !isIsolatedFrom(state, target, source) && (skill.targetExpansion?.target === 'all-enemies' || !isInvulnerableToSkill(state, target, skill)))
 }
 

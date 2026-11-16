@@ -7,6 +7,6 @@ export function applyHeal(effect: Extract<SkillEffect, { type: 'heal' }>, contex
   if (!nonnegative(effect.amount)) return 'invalid-effect-definition'
   const bonus = getActiveModifiers(context.state, context.source).reduce((sum, modifier) => modifier.type === 'healing-bonus' ? sum + modifier.amount : sum, 0)
   const decrease = (effect.decreasePerUse ?? 0) * Math.max(0, (context.source.skillUses?.[context.skill.id] ?? 1) - 1)
-  if (context.target.health > 0) context.target.health = Math.min(context.target.maxHealth, context.target.health + Math.max(0, effect.amount + bonus - decrease))
+  if (context.target.health > 0) context.target.health = Math.min(context.target.maxHealth, context.target.health + Math.max(0, effect.amount * (effect.perSkillUse ? context.source.skillUses?.[effect.perSkillUse] ?? 0 : 1) + bonus - decrease))
   return null
 }

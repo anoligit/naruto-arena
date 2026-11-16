@@ -1,4 +1,5 @@
 import { generateEnergy, energyTypes } from '../energy'
+import { getActiveModifiers } from './active'
 import { applyDamage } from './damage'
 import { nonnegative } from './validation'
 import type { SkillEffect, EffectContext, EffectError } from './types'
@@ -24,7 +25,9 @@ function transferEnergy(effect: Extract<SkillEffect, { type: 'steal-energy' | 'r
   const owner = context.state.players[context.playerId]
   const enemy = Object.values(context.state.players).find(player => player.team.some(member => member.instanceId === context.target.instanceId))!
   if (transfer && owner === enemy) return null
-  for (let index = 0; index < effect.amount; index++) {
+  const reduction = getActiveModifiers(context.state, context.source).reduce((sum, modifier) => modifier.type === 'energy-removal-reduction' ? sum + modifier.amount : sum, 0)
+  const baseAmount = effect.type === 'remove-energy' && effect.perStatus ? effect.amount * context.target.statuses.filter(active => active.statusId === effect.perStatus).length : effect.amount
+  for (let index = 0; index < Math.max(0, baseAmount - reduction); index++) {
     const choices = [...new Set(types)].filter(type => enemy.energy[type] > 0)
     if (!choices.length) break
     const type = choices[Math.floor((context.random ?? Math.random)() * choices.length)]

@@ -1,4 +1,4 @@
-import { missions } from '../missions'
+import { validCharacterMission } from '../missions/definition'
 import type { Character, CharacterModule } from './definition'
 import type { StatusDefinition } from '../game/types'
 
@@ -12,7 +12,7 @@ export type CharacterRegistration = {
 const hasId = (value: unknown): value is { id: string } =>
   typeof value === 'object' && value !== null && 'id' in value && typeof value.id === 'string' && value.id.trim().length > 0
 
-function readModule(value: unknown): CharacterModule | null {
+function readModule(value: unknown, missionIds: Set<string>): CharacterModule | null {
   if (typeof value !== 'object' || value === null || !('default' in value)) return null
   const module = value.default as Partial<CharacterModule> | null
   if (!module || !hasId(module.character) || typeof module.character.name !== 'string' || !module.character.name.trim()) return null
@@ -21,7 +21,8 @@ function readModule(value: unknown): CharacterModule | null {
   if (module.order !== undefined && (!Number.isFinite(module.order) || typeof module.order !== 'number')) return null
   if (!module.character.unlockRequirement) return null
   const requirement = module.character.unlockRequirement
-  if (requirement.type !== 'none' && (requirement.type !== 'mission' || !(requirement.missionId in missions))) return null
+  if (requirement.type !== 'none' && (requirement.type !== 'mission' || !missionIds.has(requirement.missionId))) return null
+  if (module.character.mission && !validCharacterMission(module.character.mission)) return null
   return module as CharacterModule
 }
 
@@ -32,8 +33,13 @@ export function collectCharacterModules(
 ): CharacterRegistration {
   const result: CharacterRegistration = { characters: [], statuses: [], issues: [] }
   const candidates: { path: string; module: CharacterModule }[] = []
+  const missionIds = new Set<string>()
+  for (const value of Object.values(discovered)) {
+    const entry=value as {default?:CharacterModule}
+    if(validCharacterMission(entry?.default?.character?.mission))missionIds.add(entry.default!.character.mission!.id)
+  }
   for (const [path, value] of Object.entries(discovered)) {
-    const module = readModule(value)
+    const module = readModule(value,missionIds)
     if (!module) {
       result.issues.push({ path, message: 'Exporte default defineCharacter com id, nome, retrato, descrição, requisito e os blocos de habilidades.' })
       continue

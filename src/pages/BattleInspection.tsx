@@ -1,5 +1,5 @@
 import CharacterInspectionContent from './CharacterInspectionContent'
-import { getEffectiveSkill } from '../game/skillCatalog'
+import { getBattleSkills, getEffectiveSkill } from '../game/skillCatalog'
 import { characters } from '../data/characters'
 import type { BattleState } from '../game/types'
 import type { PlayerId } from '../game/types'
@@ -27,7 +27,7 @@ export default function BattleInspectionPanel({ battle, inspection, profiles, on
     .find((entry) => entry.instanceId === inspection?.characterInstanceId)
   const definition = characters.find((entry) => entry.id === member?.characterId)
   const skillName = inspection?.skillName
-  const baseSkill = definition?.skillDefinitions?.find((entry) => entry.name === skillName)
+  const baseSkill = definition?.skillDefinitions?.find((entry) => entry.name === skillName) ?? (member && getBattleSkills(battle, member).find(skill => skill.name === skillName))
   const skill = member && baseSkill ? getEffectiveSkill(battle, member, baseSkill) : baseSkill
   if (!member || !definition) return null
   return <CharacterInspectionContent definition={definition} skill={skill} skillName={skillName}

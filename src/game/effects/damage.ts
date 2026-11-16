@@ -1,3 +1,5 @@
+import { findSourceSkill } from './origin'
+import { applySkillEffect } from './apply'
 import { statuses } from './catalog'
 import { matchesSkillClasses } from '../classes'
 import { getAppliedModifiers } from './appliedModifiers'
@@ -9,6 +11,7 @@ import type { ActiveStatus, SkillEffect, EffectContext, EffectError, DamageEvent
 
 export function applyDamage(effect: Extract<SkillEffect, { type: 'damage' }>, context: EffectContext): EffectError | null {
   if (!nonnegative(effect.amount)) return 'invalid-effect-definition'
+  const effectSkillId = context.skill.originSkillId ?? context.skill.id
   const execute = effect.executeIf && getActiveStatuses(context.state, context.target).some((active) =>
     active.statusId === effect.executeIf!.statusId &&
     (!effect.executeIf!.fromSourceOnly || active.sourceCharacterId === context.source.instanceId) &&
@@ -18,7 +21,9 @@ export function applyDamage(effect: Extract<SkillEffect, { type: 'damage' }>, co
   if (effect.primaryAmount !== undefined && !nonnegative(effect.primaryAmount)) return 'invalid-effect-definition'
   const scalingTarget = effect.healthScaling?.of === 'target' ? context.target : context.source
   let amount = (context.isPrimaryTarget ? effect.primaryAmount ?? effect.amount : effect.amount) + (effect.healthScaling ? Math.floor(Math.max(0, scalingTarget.maxHealth - scalingTarget.health) / effect.healthScaling.step) * effect.healthScaling.bonus : 0)
+  amount += context.damageBonus ?? 0
   amount += (effect.growthPerTurn ?? 0) * (context.elapsedTurns ?? 0)
+  if (effect.statusCountScaling) amount += getActiveStatuses(context.state, effect.statusCountScaling.of === 'target' ? context.target : context.source).filter(active => active.statusId === effect.statusCountScaling!.statusId).length * effect.statusCountScaling.amount
   if (effect.healingBonusScaling) amount += Math.floor(getActiveModifiers(context.state, context.source).reduce((sum, modifier) => modifier.type === 'healing-bonus' ? sum + modifier.amount : sum, 0) / 15) * 10
   if (effect.statusTurnScaling) {
     const active = getActiveStatuses(context.state, context.source).find(active => active.statusId === effect.statusTurnScaling!.statusId)
@@ -26,8 +31,8 @@ export function applyDamage(effect: Extract<SkillEffect, { type: 'damage' }>, co
   }
   if (effect.currentHealthPercent !== undefined) amount = context.target.health * effect.currentHealthPercent / 100
   for (const modifier of getActiveModifiers(context.state, context.source)) {
-    if (modifier.type === 'outgoing-damage-bonus' && (modifier.skillId === context.skill.id || modifier.skillId === '*')) amount += modifier.amount
-    if (modifier.type === 'damage-multiplier' && modifier.skillId === context.skill.id) {
+    if (modifier.type === 'outgoing-damage-bonus' && (modifier.skillId === effectSkillId || modifier.skillId === '*')) amount += modifier.amount
+    if (modifier.type === 'damage-multiplier' && modifier.skillId === effectSkillId) {
       if (!validModifier(modifier)) return 'invalid-effect-definition'
       amount *= modifier.multiplier
     }
@@ -40,7 +45,7 @@ export function applyDamage(effect: Extract<SkillEffect, { type: 'damage' }>, co
     const modifiers = getAppliedModifiers(active)
     for (const modifier of modifiers) {
       if (modifier.type !== 'damage-taken-multiplier' && modifier.type !== 'damage-taken-bonus') continue
-      if ((modifier.skillId !== '*' && modifier.skillId !== context.skill.id) || (modifier.fromSourceOnly && active.sourceCharacterId !== context.source.instanceId)) continue
+      if ((modifier.skillId !== '*' && modifier.skillId !== effectSkillId) || (modifier.fromSourceOnly && active.sourceCharacterId !== context.source.instanceId)) continue
       if (modifier.classes && !matchesSkillClasses(context.skill.classes, modifier.classes)) continue
       if (modifier.type === 'damage-taken-bonus' && modifier.excludesAffliction && effect.damageType === 'affliction') continue
       if (!validModifier(modifier)) return 'invalid-effect-definition'
@@ -53,10 +58,11 @@ export function applyDamage(effect: Extract<SkillEffect, { type: 'damage' }>, co
     if (modifier.type === 'outgoing-damage-reduction-percent') amount *= Math.max(0, 1 - modifier.percent / 100)
     if (modifier.type === 'outgoing-damage-reduction' && (!modifier.classes || matchesSkillClasses(context.skill.classes, modifier.classes)) && (!modifier.excludesAffliction || effect.damageType !== 'affliction')) amount = Math.max(0, amount - modifier.amount)
   }
+  const rawAmount = amount
   if (effect.damageType !== 'affliction') for (const modifier of getActiveModifiers(context.state, context.target)) if (modifier.type === 'incoming-damage-cap') amount = Math.min(amount, modifier.amount)
   if (!nonnegative(amount)) return 'invalid-effect-definition'
   context.damageEvents.push({ sourceInstanceId: context.source.instanceId, targetInstanceId: context.target.instanceId,
-    skillId: context.skill.id, amount, newSkill: !context.periodic, protection: captureDamageProtection(context.state, context.target), ignoresImmunity: effect.ignoresImmunity, execute: Boolean(execute), executeBelowHealth: effect.executeBelowHealth, nonlethal: effect.nonlethal, damageType: effect.damageType })
+    skillId: context.skill.id, amount, rawAmount, newSkill: !context.periodic, noMarkTrigger: effect.noMarkTrigger, protection: captureDamageProtection(context.state, context.target), ignoresImmunity: effect.ignoresImmunity, execute: Boolean(execute), executeBelowHealth: effect.executeBelowHealth, nonlethal: effect.nonlethal, damageType: effect.damageType })
   return null
 }
 
@@ -91,6 +97,7 @@ export function triggerSkillUseDamage(
 export function settleTurnDamage(state: BattleState, events: DamageEvent[]): DamageResult[] {
   const results: DamageResult[] = []
   const stolenHealth = new Map<string, number>()
+  const broken: { active: ActiveStatus; attackerId: string }[] = []
   for (const owner of Object.values(state.players)) {
     for (const target of owner.team) {
       const fallback = captureDamageProtection(state, target)
@@ -136,7 +143,10 @@ export function settleTurnDamage(state: BattleState, events: DamageEvent[]): Dam
               const absorbed = Math.min(remaining, amount)
               shieldPoints.set(shield.instanceId, remaining - absorbed)
               const active = target.statuses.find(active => active.instanceId === shield.instanceId)
-              if (active) active.shieldRemaining = remaining - absorbed
+              if (active) {
+                active.shieldRemaining = remaining - absorbed
+                if (remaining > 0 && active.shieldRemaining === 0 && statuses.find(definition => definition.id === active.statusId)?.onShieldDestroyedEffects) broken.push({ active, attackerId: event.sourceInstanceId })
+              }
               amount -= absorbed
             }
           }
@@ -169,6 +179,29 @@ export function settleTurnDamage(state: BattleState, events: DamageEvent[]): Dam
         result.healthAfter = target.health
         if (result.healthAfter < result.healthBefore && events.some(event => event.targetInstanceId === target.instanceId && event.sourceInstanceId !== target.instanceId && event.newSkill !== false)) target.statuses = target.statuses.filter(active => !statuses.find(definition => definition.id === active.statusId)?.endsOnNewSkillDamage)
       }
+    }
+  }
+  const reactions: DamageEvent[] = []
+  for (const { active, attackerId } of broken) {
+    const source = Object.values(state.players).flatMap(player => player.team).find(member => member.instanceId === active.sourceCharacterId)
+    const target = Object.values(state.players).filter(player => player.id !== active.sourcePlayerId).flatMap(player => player.team).find(member => member.instanceId === attackerId)
+    const skill = findSourceSkill(source, active.sourceSkillId)
+    if (!source || !target || target.health <= 0 || !skill) continue
+    for (const [effectIndex, effect] of (statuses.find(definition => definition.id === active.statusId)?.onShieldDestroyedEffects ?? []).entries()) {
+      const count = target.statuses.length
+      const error = applySkillEffect(effect, { state, source, target, skill, playerId: active.sourcePlayerId, effectIndex, damageEvents: reactions, periodic: true })
+      if (error) throw new Error(`Resposta de escudo inválida: ${active.statusId}: ${error}`)
+      const applied = target.statuses[count]
+      const definition = applied && statuses.find(definition => definition.id === applied.statusId)
+      // Uma reação no turno adversário já conta esse turno como o primeiro.
+      if (applied && definition?.duration.type === 'opponent-turns' && applied.expiration.playerId === state.activePlayerId) applied.expiration.afterTurn -= 1
+    }
+  }
+  if (reactions.length) {
+    for (const reaction of settleTurnDamage(state, reactions)) {
+      const original = results.find(result => result.targetInstanceId === reaction.targetInstanceId)
+      if (original) { original.damage += reaction.damage; original.healthAfter = reaction.healthAfter }
+      else results.push(reaction)
     }
   }
   return results
