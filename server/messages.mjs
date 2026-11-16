@@ -21,6 +21,7 @@ export function validCommand(command) {
 
 export function validMessage(message) {
   if (!record(message)) return false
+  if (message.type === 'resume') return text(message.version,80) && typeof message.code === 'string' && /^[A-Z2-9]{6}$/.test(message.code) && (message.token === undefined || typeof message.token === 'string' && /^[A-Za-z0-9_-]{43}$/.test(message.token))
   if (message.type === 'create' || message.type === 'join') {
     return text(message.name, 24) && message.name.trim().length > 0 && text(message.version, 80) &&
       (message.avatarId === undefined || text(message.avatarId, 80)) &&

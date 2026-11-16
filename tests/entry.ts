@@ -1,7 +1,9 @@
 export * from '../src/characters/registry'
 export * from '../src/characters/definition'
+export { orderCharacterCatalog } from '../src/characters/catalogOrder'
 export * from '../src/game/effects'
 export * from '../src/missions'
+export * from '../src/missions/progression'
 export { collectCharacterModules } from '../src/characters/registration'
 export { createBattle } from '../src/game/createBattle'
 export { resolveTurn } from '../src/game/resolveTurn'
@@ -38,8 +40,13 @@ export { getAppliedModifiers } from '../src/game/effects/appliedModifiers'
 export { createTrainingBattle } from '../src/game/training/createTrainingBattle'
 export { planComputerTurn, runComputerTurn } from '../src/game/training/computer'
 import StartPlaying from '../src/pages/StartPlaying'
-export function renderSelection(team: (Character | null)[]) {
-  return renderToStaticMarkup(createElement(StartPlaying, { team, setTeam: () => {} }))
+export function renderSelection(team: (Character | null)[], account?: Account) {
+  const selection = createElement(StartPlaying, { team, setTeam: () => {} })
+  if (!account) return renderToStaticMarkup(selection)
+  return renderToStaticMarkup(createElement(AccountContext.Provider, { value: {
+    account, profile: account.profile, status: 'ready', syncError: '', refresh: async () => {},
+    register: async () => {}, login: async () => {}, logout: async () => {}, preferences: async () => {},
+  } }, selection))
 }
 import type { LocalBattleSession } from '../src/game/localBattleSession'
 import type { PlayerId } from '../src/game/types'
@@ -84,3 +91,27 @@ export function renderMobileConfirmation(battle: BattleState) {
 }
 
 export { expireTurn } from '../src/game/turnTimer'
+
+export { togglePreselection } from '../src/game/preselection'
+export { applyHealthPassives } from '../src/game/effects/passives'
+
+import AccountForm from '../src/account/AccountForm'
+import AccountPage from '../src/account/AccountPage'
+import MissionsPage from '../src/missions/MissionsPage'
+import AccountSettings from '../src/account/AccountSettings'
+export { avatars, avatarIds, avatarImage } from '../src/account/avatarCatalog'
+import { AccountContext } from '../src/account/context'
+import type { Account } from '../src/account/types'
+export function renderAccountForm(registration: boolean) {
+  return renderToStaticMarkup(createElement(AccountForm, { registration }))
+}
+export function renderAccountPage(account: Account, settings = false, mission = false) {
+  const profile = { ...account.profile, image: account.avatarId ? 'avatar-test.png' : undefined }
+  return renderToStaticMarkup(createElement(AccountContext.Provider, { value: { account, profile, status: 'ready', syncError: '', refresh:async()=>{}, register: async () => {}, login: async () => {}, logout: async () => {}, preferences: async () => {} } }, createElement(mission ? MissionsPage : settings ? AccountSettings : AccountPage)))
+}
+
+export { accountRequest, AccountRequestError } from '../src/account/api'
+
+export { executeSkillEffects } from '../src/game/effects/execution'
+
+export { getOngoingSkills } from '../src/game/ongoingSkills'

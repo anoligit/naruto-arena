@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Contas e sessões locais: nunca enviar dados dos jogadores ao Git.
+/server/data/
+
+# Build e dados de teste da Cloudflare
+.wrangler/
+cloudflare/generated/
+cloudflare/public/
+cloudflare/deploy/

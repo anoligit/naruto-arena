@@ -1,0 +1,60 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "naruto-arena-beta",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-01-30",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*",
+      "/play",
+      "/health",
+      "/",
+      "/naruto-arena"
+    ]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ROOMS",
+        "class_name": "ArenaRoom"
+      },
+      {
+        "name": "ACCOUNTS",
+        "class_name": "AccountService"
+      },
+      {
+        "name": "MATCHMAKING",
+        "class_name": "QuickMatchmaking"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "ArenaRoom",
+        "AccountService"
+      ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "QuickMatchmaking"
+      ]
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "naruto-arena-beta",
+      "database_id": "c7df3ead-7440-4803-965e-5b24459ef565",
+      "migrations_dir": "./migrations"
+    }
+  ]
+}

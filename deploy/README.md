@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "naruto-arena-beta" generated at 2026-11-16T02:33:33.580Z.

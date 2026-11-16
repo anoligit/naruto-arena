@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 const a = await import(process.env.ARENA_TEST_MODULE)
-const team = ['naruto', 'sasuke', 'sakura'].map(id => a.characters.find(character => character.id === id))
+const team = ['classico-naruto', 'classico-sasuke', 'classico-sakura'].map(id => a.characters.find(character => character.id === id))
 const pool = (n = 20) => ({ taijutsu: n, ninjutsu: n, bloodline: n, genjutsu: n })
-function setup(ids = ['naruto', 'sasuke', 'sakura']) {
+function setup(ids = ['classico-naruto', 'classico-sasuke', 'classico-sakura']) {
   const roster = ids.map(id => a.characters.find(character => character.id === id))
   const state = a.createBattle(roster, roster, 'player-2', 100, 1000)
   Object.values(state.players).forEach(player => { player.energy = pool() })
@@ -42,7 +42,7 @@ test('Training requires exactly three distinct characters and creates a unique r
 })
 test('Training button is available only with a complete team', () => {
   const incomplete = a.renderSelection([team[0], team[1], null])
-  const complete = a.renderSelection(team)
+  const complete = a.renderSelection(['classico-naruto','classico-sasuke','classico-sakura'].map(id=>a.characters.find(c=>c.id===id)))
   assert(/<button[^>]*disabled=""[^>]*>Treinamento<\/button>/.test(incomplete))
   assert(/<button(?![^>]*disabled)[^>]*>Treinamento<\/button>/.test(complete))
 })
@@ -53,10 +53,16 @@ test('The computer plans affordable legal skills, one per character, without mut
   validatePlan(state, plan)
   assert.deepEqual(state, before)
 })
-test('No-energy, dead and fully stunned characters do not execute actions', () => {
+test('Zero-energy permits only free skills; dead and fully stunned characters cannot act', () => {
   const state = setup()
   state.players['player-2'].energy = pool(0)
-  assert.equal(a.planComputerTurn(state, 1100).queue.length, 0)
+  const freePlan=a.planComputerTurn(state,1100)
+  for(const action of freePlan.queue){
+    const source=state.players['player-2'].team.find(c=>c.instanceId===action.characterInstanceId)
+    const skill=a.getBattleSkills(state,source).find(s=>s.id===action.skillId)
+    assert.equal(skill.cost.random??0,0);assert(Object.values(skill.cost.specific??{}).every(n=>n===0))
+  }
+  validatePlan(state,freePlan)
   state.players['player-2'].energy = pool()
   const [dead, stunned] = state.players['player-2'].team
   dead.health = 0
@@ -70,25 +76,27 @@ test('Visible invulnerability and cooldowns restrict the computer through shared
   const protectedTarget = state.players['player-1'].team[0]
   protectedTarget.statuses.push({ instanceId: 'fixture:guard', statusId: 'invulnerable-one-turn', sourcePlayerId: 'player-1', sourceCharacterId: protectedTarget.instanceId, expiration: { playerId: 'player-2', afterTurn: 99 } })
   const source = state.players['player-2'].team[0]
-  source.skillReadyOnTurn['naruto-combo'] = 99
+  source.skillReadyOnTurn['classico-naruto-1'] = 99
   const plan = a.planComputerTurn(state, 1100)
-  assert(!plan.queue.some(action => action.characterInstanceId === source.instanceId && action.skillId === 'naruto-combo'))
+  assert(!plan.queue.some(action => action.characterInstanceId === source.instanceId && action.skillId === 'classico-naruto-1'))
   validatePlan(state, plan)
 })
 test('The computer heals a badly injured ally and chooses an affordable random payment', () => {
   const state = setup()
   state.players['player-2'].team[0].health = 1
+  // Make offense unavailable so the test isolates the healing decision.
+  for(const target of state.players['player-1'].team)target.statuses.push({instanceId:'guard:'+target.instanceId,statusId:'invulnerable-one-turn',sourcePlayerId:'player-1',sourceCharacterId:target.instanceId,expiration:{playerId:'player-2',afterTurn:99}})
   const plan = a.planComputerTurn(state, 1100)
-  const heal = plan.queue.find(action => action.skillId === 'sakura-cure')
+  const heal = plan.queue.find(action => action.skillId === 'classico-sakura-2')
   assert(heal)
   assert.equal(heal.targetInstanceId, state.players['player-2'].team[0].instanceId)
   validatePlan(state, plan)
 })
-test('Planning is identical with and without a hidden enemy counter', () => {
-  const state = setup(['zabuza', 'kakashi', 'haku'])
+test('Planning is identical with and without a hidden enemy effect', () => {
+  const state = setup(['classico-kiba', 'classico-young-kakashi', 'classico-haku'])
   const before = a.planComputerTurn(state, 1100)
   const target = state.players['player-1'].team[1]
-  target.statuses.push({ instanceId: 'fixture:hidden', statusId: 'kakashi-reflect', sourcePlayerId: 'player-1', sourceCharacterId: target.instanceId, sourceSkillId: 'kakashi-reflect', expiration: { playerId: 'player-2', afterTurn: 99 } })
+  target.statuses.push({ instanceId: 'fixture:hidden', statusId: 'classico-young-kakashi-observe', sourcePlayerId: 'player-1', sourceCharacterId: target.instanceId, sourceSkillId: 'classico-young-kakashi-observe', expiration: { playerId: 'player-2', afterTurn: 99 } })
   assert.deepEqual(a.planComputerTurn(state, 1100), before)
 })
 test('Computer execution advances exactly once and clears its private queue', () => {
@@ -127,14 +135,14 @@ test('All registered character combinations produce executable plans', () => {
   }
 })
 test('Training keeps the human team left and hidden computer effects hidden on its own turn', () => {
-  const state = setup(['zabuza', 'kakashi', 'haku'])
+  const state = setup(['classico-kiba', 'classico-young-kakashi', 'classico-haku'])
   const computer = state.players['player-2'].team[1]
-  computer.statuses.push({ instanceId: 'fixture:hidden-bot', statusId: 'kakashi-reflect', sourcePlayerId: 'player-2', sourceCharacterId: computer.instanceId, sourceSkillId: 'kakashi-reflect', expiration: { playerId: 'player-1', afterTurn: 99 } })
+  computer.statuses.push({ instanceId: 'fixture:hidden-bot', statusId: 'classico-young-kakashi-observe', sourcePlayerId: 'player-2', sourceCharacterId: computer.instanceId, sourceSkillId: 'classico-young-kakashi-observe', expiration: { playerId: 'player-1', afterTurn: 99 } })
   const html = a.renderBattle(state, 'training')
   assert(html.includes('Você · Jogador 1'))
   assert(html.includes('aria-label="Equipe do Jogador 1"'))
   assert(html.includes('OPPONENT TURN...'))
-  assert(!html.includes('Consultar efeito ativo: Sharingan Reflect'))
+  assert(!html.includes('Consultar efeito ativo: Implanted Sharingan'))
 })
 test('Training outcomes identify human victory and defeat without competitive rewards', () => {
   const state = setup()

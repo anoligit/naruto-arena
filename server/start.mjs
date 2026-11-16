@@ -1,8 +1,13 @@
+import { roomResult } from './progression.mjs'
+import { Accounts } from './accounts.mjs'
+import { accountHandler, sessionToken, allowedOrigin, readAccountBody } from './account-http.mjs'
+import { characters, hakuMission } from './dist/engine.mjs'
 import http from 'node:http'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { WebSocketServer } from 'ws'
+import { QuickMatchmaker, QueueError, newRoomCode } from './matchmaking.mjs'
 import { PrivateRooms } from './rooms.mjs'
 import { multiplayerVersion } from './dist/engine.mjs'
 
@@ -35,24 +40,74 @@ async function serveSite(request, response) {
   }
 }
 
-export async function startServer({ port = Number(process.env.PORT ?? 3001), host = '0.0.0.0', origins = (process.env.FRONTEND_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173').split(','), rooms = new PrivateRooms() } = {}) {
-  const server = http.createServer((request, response) => { serveSite(request, response).catch(() => response.destroy()) })
+export async function startServer({ port = Number(process.env.PORT ?? 3001), host = '0.0.0.0', origins = (process.env.FRONTEND_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173').split(','), rooms = new PrivateRooms(), accounts = new Accounts({ characterIds: characters.map(character => character.id) }) } = {}) {
+  const handleAccount = accountHandler(accounts, origins)
+  const quick=new QuickMatchmaker({version:multiplayerVersion,validateTeam:(ids,account)=>{rooms.team(ids);rooms.checkUnlocked(ids,account)},currentMatch:id=>rooms.currentMatch(id),
+    createMatch:entries=>{let code;do{code=newRoomCode()}while(rooms.rooms.has(code));rooms.prepareQuick(code,entries);return code}})
+  const settleResults=()=>{
+    for(const room of rooms.rooms.values()) {
+      const result=roomResult(room,hakuMission)
+      if(result&&!room.resultSaved)try{accounts.recordResult(result);room.resultSaved=true;rooms.publish(room)}catch{console.error('Não foi possível salvar um resultado. O servidor tentará novamente.')}
+    }
+  }
+  const server = http.createServer((request, response) => {
+    (async () => {
+      if (new URL(request.url,'http://localhost').pathname === '/api/training') {
+        const reply=(status,value)=>{response.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});response.end(JSON.stringify(value))}
+        if(request.method!=='POST'){reply(405,{error:'Método não permitido.'});return}
+        if(!allowedOrigin(request,origins)){reply(403,{error:'Abra o treinamento pelo endereço do jogo.'});return}
+        try {
+          const account=accounts.identity(sessionToken(request))
+          if(!account)throw new QueueError('Entre na sua conta para salvar o treinamento.',401)
+          if(request.headers['x-arena-account']!==account.id)throw new QueueError('A conta mudou em outra janela. Atualize a página.',409)
+          const input=await readAccountBody(request)
+          if(input.version!==multiplayerVersion)throw new QueueError('O jogo foi atualizado. Atualize a página.',409)
+          if(!Array.isArray(input.team)||input.team.length!==3||input.team.some(id=>typeof id!=='string'||id.length>80))throw new QueueError('Escolha três personagens válidos.')
+          let code=rooms.currentMatch(account.id)
+          if(!code){
+            do{code=newRoomCode()}while(rooms.rooms.has(code))
+            try {rooms.prepareTraining(code,account,input.team)}catch(error){throw new QueueError(error.message)}
+          }
+          reply(200,{code})
+        } catch(error){reply(error.status??500,{error:error.status?error.message:'Não foi possível iniciar o treinamento. Tente novamente.'})}
+        return
+      }
+      if (new URL(request.url,'http://localhost').pathname === '/api/quick') {
+        const reply=(status,value)=>{response.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});response.end(JSON.stringify(value))}
+        if(!['POST','DELETE'].includes(request.method)){reply(405,{error:'Método não permitido.'});return}
+        if(!allowedOrigin(request,origins)){reply(403,{error:'Abra a fila pelo endereço do jogo.'});return}
+        try {
+          const account=accounts.identity(sessionToken(request))
+          if(!account)throw new QueueError('Entre na sua conta para jogar uma partida rápida.',401)
+          if(request.headers['x-arena-account']!==account.id)throw new QueueError('A conta mudou em outra janela. Atualize a página.',409)
+          reply(200,await quick.request(account,await readAccountBody(request),request.method==='DELETE'))
+        } catch(error){reply(error.status??500,{error:error.status?error.message:'Não foi possível buscar adversário. Tente novamente.'})}
+        return
+      }
+      if (new URL(request.url,'http://localhost').pathname === '/api/match' && request.method === 'GET') {
+        const account=accounts.session(sessionToken(request))
+        response.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'})
+        response.end(JSON.stringify({code:account ? rooms.currentMatch(account.id):null})); return
+      }
+      if (!await handleAccount(request, response)) await serveSite(request, response)
+    })().catch(() => response.destroy())
+  })
+  server.requestTimeout = 15_000
   const sockets = new WebSocketServer({ noServer: true, maxPayload: 32 * 1024 })
   server.on('upgrade', (request, socket, head) => {
-    let sameHost = false
-    try { const origin = new URL(request.headers.origin); sameHost = ['http:', 'https:'].includes(origin.protocol) && origin.host === request.headers.host } catch { /* Rejeita origens ausentes ou inválidas. */ }
-    if (request.url !== '/play' || !(sameHost || origins.includes(request.headers.origin))) { socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); socket.destroy(); return }
-    sockets.handleUpgrade(request, socket, head, connection => sockets.emit('connection', connection))
+    if (new URL(request.url, 'http://localhost').pathname !== '/play' || !allowedOrigin(request, origins)) { socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n'); socket.destroy(); return }
+    sockets.handleUpgrade(request, socket, head, connection => sockets.emit('connection', connection, request))
   })
-  sockets.on('connection', socket => {
-    rooms.connect(socket)
+  sockets.on('connection', (socket, request) => {
+    const token = sessionToken(request)
+    rooms.connect(socket, () => accounts.identity(token))
     socket.alive = true
     socket.on('pong', () => { socket.alive = true })
-    socket.on('message', message => rooms.receive(socket, message))
+    socket.on('message', message => {rooms.receive(socket, message);settleResults()})
     socket.on('close', () => rooms.disconnect(socket))
     socket.on('error', () => {})
   })
-  const clock = setInterval(() => rooms.pulse(), 250)
+  const clock = setInterval(() => {rooms.pulse();settleResults()}, 250)
   const heartbeat = setInterval(() => {
     for (const socket of sockets.clients) {
       if (!socket.alive) { socket.terminate(); continue }
@@ -60,12 +115,13 @@ export async function startServer({ port = Number(process.env.PORT ?? 3001), hos
     }
   }, 20_000)
   try { await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, host, resolve) }) }
-  catch (error) { clearInterval(clock); clearInterval(heartbeat); sockets.close(); throw error }
+  catch (error) { clearInterval(clock); clearInterval(heartbeat); sockets.close(); accounts.close(); throw error }
   return { server, sockets, rooms, close: async () => {
     clearInterval(clock); clearInterval(heartbeat)
     for (const socket of sockets.clients) socket.terminate()
     await new Promise(resolve => sockets.close(resolve))
     await new Promise(resolve => server.close(resolve))
+    accounts.close()
   } }
 }
 

@@ -12,9 +12,17 @@
     "server:build": "node server/build.mjs",
     "server:start": "node server/start.mjs",
     "server:dev": "npm run server:build && npm run server:start",
-    "test:multiplayer": "npm run server:build && node server/test.mjs",
+    "test:multiplayer": "npm run server:build && node server/test.mjs && node server/reconnection.test.mjs",
     "online:build": "npm run build && npm run server:build",
-    "online": "npm run online:build && npm run server:start"
+    "online": "npm run online:build && npm run server:start",
+    "test:accounts": "node server/accounts.test.mjs",
+    "cf:build": "npm run build && node cloudflare/build.mjs",
+    "cf:check": "npm run cf:build && wrangler deploy --dry-run --outdir deploy --config cloudflare/wrangler.jsonc",
+    "cf:test": "npm run cf:check && node cloudflare/test.mjs",
+    "cf:dev": "npm run cf:build && wrangler d1 migrations apply DB --local --config cloudflare/wrangler.jsonc && wrangler dev --config cloudflare/wrangler.jsonc",
+    "cf:deploy": "node cloudflare/publish.mjs",
+    "test:reconnection": "npm run server:build && node server/reconnection.test.mjs",
+    "test:matchmaking": "npm run server:build && node server/matchmaking.test.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",
@@ -31,8 +39,13 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.13.0",
+    "miniflare": "^5.20261113.0-beta",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1",
-    "vite": "^8.3.6"
+    "vite": "^8.3.6",
+    "wrangler": "^4.162.0"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

@@ -13,7 +13,7 @@ O servidor usa o motor e o cadastro de personagens em `src`. Não existe uma seg
 
    Esse comando compila o site, prepara o motor para o Node e inicia o servidor na porta 3001. Espere a mensagem `Jogo online`.
 3. Abra http://localhost:3001. Escolha três personagens e clique em **Partida privada online**.
-4. Informe seu nome, escolha um avatar temporário e crie a sala e copie o convite. Para testar no mesmo Mac, abra o convite em outra aba.
+4. Se estiver conectado a uma conta, a sala usa seu nome e avatar salvos. Como visitante, informe seu nome e escolha um avatar temporário. Crie a sala e copie o convite. Para testar no mesmo Mac, abra o convite em outra aba.
 
 ## Amigos fora de casa
 
@@ -52,7 +52,7 @@ A compilação do motor importa os personagens automaticamente, usando o mesmo r
 - A fila planejada, pagamentos e energia inimiga não são enviados ao adversário. Efeitos invisíveis ficam ocultos até poderem ser revelados.
 - A interface de treinamento e os testes locais continuam disponíveis.
 - Sem contas, ranking, progresso de missões ou recuperação de conexão nesta etapa.
-- Fechar/atualizar a aba da batalha ou perder a conexão encerra a participação e concede vitória ao adversário quando a desconexão é detectada. Uma perda de rede pode levar alguns segundos para ser detectada.
+- Fechar/atualizar a aba ou perder a conexão reserva a equipe e mantém o relógio. A primeira vez que terminar sem confirmação é passada; a segunda vez consecutiva do mesmo jogador termina em derrota. Confirmar um turno, mesmo vazio, zera a contagem. Reconectar não altera o prazo nem apaga faltas. Contas retomam a sala após entrar novamente; convidados podem atualizar a mesma aba (a chave privada fica no sessionStorage). O servidor Node mantém salas apenas enquanto o processo estiver ligado.
 - Salas ficam na memória: parar o servidor apaga todas elas.
 - O Mac precisa estar ligado, sem repouso, com internet; servidor e túnel precisam permanecer abertos.
 - Esta versão não precisa publicar alterações no GitHub Pages para funcionar: o próprio servidor entrega o jogo compilado pela porta 3001.
@@ -76,3 +76,7 @@ npm run test:multiplayer
 ```
 
 O último comando testa as salas e abre uma porta local temporária para verificar duas conexões WebSocket reais. Não usa a porta 3001 nem expõe o servidor publicamente.
+
+## Contas
+
+Cadastro, login e preferências estão disponíveis no mesmo servidor. Veja [CONTAS.md](./CONTAS.md) para acesso, backup e funcionamento.
