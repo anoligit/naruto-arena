@@ -5,6 +5,9 @@ const collect=entries=>a.collectCharacterModules(Object.fromEntries(entries.map(
 const initial=[['naruto',1],['sasuke',2],['sakura',3],['hinata',4],['kiba',5]]
 assert.deepEqual(collect(initial.map(([id,order])=>[id,id==='sakura'?{position:4}:order])).characters.map(c=>c.id),['naruto','sasuke','hinata','sakura','kiba'])
 assert.deepEqual(collect(initial.map(([id,order])=>[id,id==='kiba'?{position:1}:order])).characters.map(c=>c.id),['kiba','naruto','sasuke','sakura','hinata'])
+const swap=Array.from({length:22},(_,i)=>[i===18?'rin':i===20?'young-kakashi':`char-${i+1}`,i===18?{position:21}:i===20?{position:19}:i+1])
+const swapped=collect(swap).characters
+assert.equal(swapped[18].id,'young-kakashi');assert.equal(swapped[19].id,'char-20');assert.equal(swapped[20].id,'rin')
 assert.deepEqual(collect(initial.map(([id,order])=>[id,id==='naruto'?{position:5}:order])).characters.map(c=>c.id),['sasuke','sakura','hinata','kiba','naruto'])
 assert(collect([['a',{position:2}],['b',{position:2}]]).issues.some(i=>i.message.includes('Posição exata')))
 assert.equal(collect([['a',{position:0}]]).characters.length,0)

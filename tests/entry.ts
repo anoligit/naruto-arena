@@ -120,3 +120,10 @@ export { getOngoingSkills } from '../src/game/ongoingSkills'
 
 export { validateCharacterCatalog } from '../src/characters/validation'
 export { getMissionProgress } from '../src/missions/progress'
+
+// Dados reais dos index.ts para conferir mudanças de ordem sem exigir números fixos.
+export const configuredCharacterModules = import.meta.glob('../src/characters/classico/*/index.ts', { eager: true })
+
+export { applyCharacterDrop, canDropCharacter } from '../src/pages/selection/characterDrop'
+
+export { getCatalogPage } from '../src/pages/selection/catalogPagination'

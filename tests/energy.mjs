@@ -14,9 +14,9 @@ const setup=(energy=pool({taijutsu:1,ninjutsu:1}))=>{const s=createBattle(team,t
 const request=(s,index,skillId)=>({playerId:'player-1',characterInstanceId:s.players['player-1'].team[index].instanceId,skillId,targetInstanceId:s.players['player-2'].team[0].instanceId});
 const sampleSkill=(id,cost)=>({id,name:id,description:'fixture',cost,cooldown:0,target:'enemy',classes:['physical','instant'],effects:[{type:'damage',amount:1,damageType:'normal'}]});
 // Isolated synthetic skills exercise payment rules independently of character balance.
-characters[0].skillDefinitions=[{...sampleSkill('naruto-combo',{specific:{taijutsu:1}}),effects:[{type:'damage',amount:15,damageType:'normal'}]},sampleSkill('naruto-rasengan',{specific:{ninjutsu:1},random:1})];
-characters[1].skillDefinitions=[sampleSkill('test-random',{random:1})];
-characters[2].skillDefinitions=[sampleSkill('test-random-two',{random:1})];
+team[0].skillDefinitions=[{...sampleSkill('naruto-combo',{specific:{taijutsu:1}}),effects:[{type:'damage',amount:15,damageType:'normal'}]},sampleSkill('naruto-rasengan',{specific:{ninjutsu:1},random:1})];
+team[1].skillDefinitions=[sampleSkill('test-random',{random:1})];
+team[2].skillDefinitions=[sampleSkill('test-random-two',{random:1})];
 let checks=0;const test=(name,fn)=>{fn();checks++;console.log('PASS '+name);};
 const queueOne=(s,action)=>{const result=appendAction(s,[],action,2000);assert.equal(result.ok,true);return result.queue;};
 const equal=(a,b)=>assert.equal(JSON.stringify(a),JSON.stringify(b));

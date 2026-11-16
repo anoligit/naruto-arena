@@ -15,9 +15,13 @@ import AccountSettings from '../account/AccountSettings'
 import AccountLinks from '../account/AccountLinks'
 import { useAccount } from '../account/useAccount'
 import { imageUrl } from '../utils/imageUrl'
+import { applyCharacterDrop, canDropCharacter } from './selection/characterDrop'
+import { useCharacterDrag } from './selection/useCharacterDrag'
+import CharacterDragLayer from './selection/CharacterDragLayer'
+import { getCatalogPage } from './selection/catalogPagination'
 
 import { Fragment, useEffect, useLayoutEffect, useId, useRef, useState } from 'react'
-import type { Dispatch, SetStateAction, DragEvent } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { characters as registeredCharacters } from '../data/characters'
 import { orderCharacterCatalog } from '../characters/catalogOrder'
 import type { Character } from '../data/characters'
@@ -45,6 +49,11 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
   const [onlineTeam, setOnlineTeam] = useState<Character[] | null>(null)
   const completeTeam = team.every(character=>character && unlocked(character)) ? getCompleteTeam(team) : null
   const mobile = useMobileBattle()
+  const { attachRoot: attachDragRoot, visual: dragVisual, begin: beginCharacterDrag, suppressClick: suppressDragClick } = useCharacterDrag({
+    enabled: !mobile && !localBattle && !onlineTeam && !trainingTeam && !quickTeam && !recovery && !checking,
+    canDrop: (source, target) => canDropCharacter(team, source, target, unlocked(source.character)),
+    onDrop: (source, target) => setTeam(current => applyCharacterDrop(current, source, target, unlocked(source.character))),
+  })
   const [tab, setTab] = useState<SelectionTab>('characters')
   const [search, setSearch] = useState('')
   const [catalogPage, setCatalogPage] = useState(0)
@@ -54,9 +63,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
   useEffect(() => () => { if (catalogTap.current) clearTimeout(catalogTap.current.timer) }, [])
   const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
   const filteredCharacters = mobile ? characters.filter(character => normalize(character.name).includes(normalize(search))) : characters
-  const pageCount = Math.max(1, Math.ceil(filteredCharacters.length / 20))
-  const currentPage = Math.min(catalogPage, pageCount - 1)
-  const visibleCharacters = mobile ? filteredCharacters.slice(currentPage * 20, (currentPage + 1) * 20) : filteredCharacters
+  const { pageCount, page: currentPage, characters: visibleCharacters } = getCatalogPage(filteredCharacters, catalogPage, mobile)
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
 
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
@@ -132,24 +139,6 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
     })
   }
 
-  function placeInSlot(character: Character, slotIndex: number) {
-    if (!unlocked(character)) return
-    setTeam((currentTeam) => {
-      if (currentTeam.some((member) => member?.id === character.id)) {
-        return currentTeam
-      }
-
-      if (currentTeam[slotIndex] !== null) {
-        return currentTeam
-      }
-
-      const newTeam = [...currentTeam]
-      newTeam[slotIndex] = character
-
-      return newTeam
-    })
-  }
-
   function removeFromTeam(slotIndex: number) {
     setPlayMenuOpen(false)
     setTeam((currentTeam) => {
@@ -158,32 +147,6 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
 
       return newTeam
     })
-  }
-
-  function handleDragStart(event: DragEvent<HTMLButtonElement>, character: Character) {
-    event.dataTransfer.setData('characterId', character.id)
-    event.dataTransfer.effectAllowed = 'move'
-  }
-
-  function handleDrop(event: DragEvent<HTMLDivElement>, slotIndex: number) {
-    event.preventDefault()
-
-    const characterId = event.dataTransfer.getData('characterId')
-    const character = characters.find((item) => item.id === characterId)
-
-    if (character) {
-      placeInSlot(character, slotIndex)
-    }
-  }
-
-  function handleReturnToCatalog(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault()
-    const characterId = event.dataTransfer.getData('teamCharacterId')
-    if (!characterId) return
-
-    setTeam((currentTeam) => currentTeam.map((member) =>
-      member?.id === characterId ? null : member
-    ))
   }
 
   function toggleCharacterDetails(character: Character) {
@@ -267,7 +230,9 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
       </nav>
   )
   return (
-    <div className={`game${mobile ? ` mobile-selection tab-${tab}` : ''}`}
+    <div className={`game${mobile ? ` mobile-selection tab-${tab}` : ''}`} ref={attachDragRoot}
+      onClickCapture={event => { if (event.detail > 0 && suppressDragClick()) { event.preventDefault(); event.stopPropagation() } }}
+      onDoubleClickCapture={event => { if (suppressDragClick()) { event.preventDefault(); event.stopPropagation() } }}
       onClick={(event) => {
         const target = event.target as HTMLElement
         if (!target.closest('.selection-play-anchor')) setPlayMenuOpen(false)
@@ -294,9 +259,8 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
           <button className="selection-filter-missions" onClick={() => setTab('missions')}>Missões</button>
         </div>}
         <div ref={catalogScroll}
-          className="character-grid"
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={handleReturnToCatalog}
+          data-character-catalog
+          className={`character-grid${dragVisual?.valid && dragVisual.target?.type === 'catalog' ? ' is-drop-target' : ''}`}
         >
           {mobile && selectedIndex < 0 && mobileDescription}
           {visibleCharacters.map((character, catalogIndex) => {
@@ -312,9 +276,10 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
                 title={`${character.name}${isLocked ? ' · Bloqueado' : ''}`}
                 aria-label={character.name}
                 data-character-id={character.id}
-                className={`character ${isInTeam ? 'in-team' : ''} ${isLocked ? 'is-locked' : ''}`}
+                className={`character ${isInTeam ? 'in-team' : ''} ${isLocked ? 'is-locked' : ''}${dragVisual?.source.character.id === character.id && dragVisual.source.fromSlot === null ? ' is-drag-source' : ''}`}
                 aria-pressed={selectedCharacter?.id === character.id}
-                draggable={!isInTeam && !isLocked}
+                draggable={false}
+                onPointerDown={event => { if (!isInTeam && !isLocked) beginCharacterDrag(event, { character, fromSlot: null }) }}
                 onMouseDown={(event) => {
                   if (event.button !== 0) event.preventDefault()
                 }}
@@ -329,7 +294,6 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
                   event.preventDefault()
                   addToTeam(character)
                 }}
-                onDragStart={(event) => handleDragStart(event, character)}
               >
                 {character.image ? (
                   <img
@@ -347,14 +311,19 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
               </Fragment>
             )
           })}
-          {!mobile && Array.from({ length: Math.max(0, 21 - characters.length) }, (_, index) => (
+          {!mobile && Array.from({ length: Math.max(0, 21 - visibleCharacters.length) }, (_, index) => (
             <div key={`empty:${index}`} className="character-placeholder" aria-hidden="true" />
           ))}
         </div>
         {mobile && !visibleCharacters.length && <p role="status">Nenhum personagem encontrado.</p>}
+        {!mobile && <nav className="desktop-catalog-pagination" aria-label="Páginas de personagens">
+          <button type="button" disabled={currentPage === 0 || !!dragVisual} onClick={() => changeCatalogPage(currentPage - 1)}>← Anterior</button>
+          <span aria-live="polite" aria-atomic="true">Página {currentPage + 1} de {pageCount}</span>
+          <button type="button" disabled={currentPage === pageCount - 1 || !!dragVisual} onClick={() => changeCatalogPage(currentPage + 1)}>Próxima →</button>
+        </nav>}
         </div>
         <aside className="team-panel">
-          {!mobile && <><PlayerProfileCard profile={playerProfile} /><AccountLinks /></>}
+          {!mobile && <div className="selection-desktop-account"><PlayerProfileCard profile={playerProfile} /><AccountLinks /></div>}
           {mobile && <nav className="selection-pagination" aria-label="Páginas de personagens">
             <button type="button" disabled={currentPage === 0} onClick={() => changeCatalogPage(currentPage - 1)}>← Anterior</button>
             <button type="button" disabled={currentPage === pageCount - 1} onClick={() => changeCatalogPage(currentPage + 1)}>Próxima →</button>
@@ -370,9 +339,8 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
             {team.map((member, index) => (
               <div
                 key={index}
-                className={`team-slot ${member ? 'occupied' : ''}`}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => handleDrop(event, index)}
+                data-team-slot={index}
+                className={`team-slot ${member ? 'occupied' : ''}${dragVisual?.target?.type === 'team' && dragVisual.target.slot === index ? dragVisual.valid ? ' is-drop-target' : ' is-drop-blocked' : ''}`}
                 onContextMenu={(event) => {
                   event.preventDefault()
                   if (member) removeFromTeam(index)
@@ -381,7 +349,7 @@ function StartPlaying({ team, setTeam }: StartPlayingProps) {
               >
                 {member ? (
                   <button
-                    className="remove-character"
+                    className={`remove-character${dragVisual?.source.fromSlot === index && dragVisual.source.character.id === member.id ? ' is-drag-source' : ''}`}
                     aria-label={`View skills for ${member.name}`}
                     onClick={(event) => {
   if (event.detail === 1) toggleCharacterDetails(member)
@@ -391,11 +359,8 @@ onDoubleClick={() => {
   setSelectedCharacter(member)
   removeFromTeam(index)
 }}
-                    draggable
-                    onDragStart={(event) => {
-                      handleDragStart(event, member)
-                      event.dataTransfer.setData('teamCharacterId', member.id)
-                    }}
+                    draggable={false}
+                    onPointerDown={event => beginCharacterDrag(event, { character: member, fromSlot: index })}
                     onMouseDown={(event) => {
                       if (event.button !== 0) event.preventDefault()
                     }}
@@ -428,6 +393,7 @@ onDoubleClick={() => {
           </div>
         </aside>
       </section>
+      <CharacterDragLayer visual={mobile ? null : dragVisual} />
     </div>
   )
 }

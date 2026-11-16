@@ -334,7 +334,6 @@
 }
 
 .game .character.in-team {
-  opacity: .35;
   cursor: pointer;
 }
 
@@ -346,7 +345,7 @@
 /* 6. Perfil acima dos três personagens; prontidão abaixo do time. */
 .game .team-panel {
   display: grid;
-  grid-template-rows: 175px var(--catalog-size) 18px 22px;
+  grid-template-rows: 175px 22px var(--catalog-size) 18px 22px;
   gap: 4px;
   align-content: space-between;
   min-width: 0;
@@ -613,4 +612,134 @@
   .game .character-details .skill[aria-pressed='true'] { outline: none; }
   .game .character-details .skill img { opacity: .5; filter: saturate(.45); }
   .game .character-details .skill[aria-pressed='true'] img { opacity: 1; filter: none; }
+}
+
+/* Arrastar retratos: o lugar permanece na grade; a peça flutua fora do recorte. */
+.game:not(.mobile-selection) .character.in-team img,
+.game .character.is-drag-source img,
+.game .remove-character.is-drag-source img {
+  visibility: hidden;
+}
+.game .character.is-drag-source,
+.game .remove-character.is-drag-source {
+  color: transparent;
+}
+.game .team-slot.is-drop-target {
+  outline: 2px solid #4d7c3a;
+  outline-offset: -2px;
+  background: #d9e4b9;
+}
+.game .team-slot.is-drop-blocked {
+  outline: 2px solid #9c5540;
+  outline-offset: -2px;
+}
+.game .character-grid.is-drop-target {
+  box-shadow: inset 0 0 0 2px #4d7c3a;
+}
+.game .remove-character { cursor: grab; }
+html.dragging-character,
+html.dragging-character * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+.character-drag-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  border: 1px solid #55482e;
+  background: #e8ddbf;
+  box-shadow: 0 5px 14px #0005;
+  opacity: .95;
+  will-change: transform;
+}
+.character-drag-layer img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.character-drag-layer.can-drop { border-color: #4d7c3a; }
+.character-drag-layer.is-returning { transition: transform 160ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .character-drag-layer.is-returning { transition: none; }
+}
+
+.game.mobile-selection .character.in-team { opacity: .35; }
+
+/* Desktop: 21 retratos por página, com perfil e equipe em áreas separadas. */
+@media (min-width: 721px) {
+  .game:not(.mobile-selection) { grid-template-rows: 340px 70px 370px; }
+  .game:not(.mobile-selection) .selection-panel { padding: 16px 24px; }
+  .game:not(.mobile-selection) .selection-catalog {
+    display: grid;
+    grid-template-rows: calc(3 * var(--catalog-size) + 2 * var(--catalog-gap)) 32px;
+    align-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+  }
+  .game:not(.mobile-selection) .character-grid {
+    overflow: hidden;
+    justify-content: center;
+  }
+  .desktop-catalog-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-width: 0;
+    font-size: 12px;
+  }
+  .desktop-catalog-pagination button {
+    min-height: 30px;
+    padding: 4px 12px;
+    border: 1px solid #65542f;
+    background: #fff6d9;
+    cursor: pointer;
+  }
+  .desktop-catalog-pagination button:disabled { opacity: .5; cursor: default; }
+  .desktop-catalog-pagination span { white-space: nowrap; }
+  .game:not(.mobile-selection) .team-panel {
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-content: start;
+    gap: 12px;
+  }
+  .selection-desktop-account {
+    display: grid;
+    grid-template-rows: minmax(100px, 1fr) auto;
+    align-content: start;
+    gap: 8px;
+    min-width: 0;
+    min-height: 0;
+  }
+  .selection-desktop-account .selection-profile {
+    grid-template-columns: 100px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+  }
+  .selection-desktop-account .selection-profile-avatar { width: 100px; height: 100px; }
+  .selection-desktop-account .selection-profile-info { line-height: 1.5; }
+  .selection-desktop-account .account-links { margin: 0; gap: 8px 12px; }
+  .game:not(.mobile-selection) .selection-team-summary {
+    display: grid;
+    grid-template-rows: auto var(--catalog-size) auto auto;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #c6b58b;
+    min-width: 0;
+  }
+  .game:not(.mobile-selection) .selection-team-heading {
+    display: block;
+    font-size: 11px;
+    line-height: 14px;
+    text-transform: uppercase;
+  }
+  .game:not(.mobile-selection) .team-slots { justify-self: center; padding: 0; gap: 14px; }
+  .game:not(.mobile-selection) .team-readiness { width: auto; line-height: 16px; }
+  .game:not(.mobile-selection) .selection-team-summary > .add-character { min-height: 26px; padding: 3px 16px; }
 }
