@@ -1,21 +1,30 @@
-import { hakuMission, missionGoalText } from './index'
+import { characters } from '../characters/registry'
+import { characterMissions, missionGoalText } from './index'
+import { getMissionProgress } from './progress'
+import type { AccountProgression } from './progress'
+export type { AccountProgression } from './progress'
 
-export const initialCharacterIds = [
-  'classico-naruto','classico-sasuke','classico-sakura',
-  'classico-hinata','classico-kiba','classico-shino',
-  'classico-shikamaru','classico-chouji','classico-ino',
-  'classico-lee','classico-neji','classico-tenten',
-  'classico-gaara','classico-temari','classico-kankuro',
-  'classico-dosu','classico-zaku','classico-kin',
-  'classico-rin','classico-young-kakashi','classico-obito',
-] as const
-export type AccountProgression = { hakuStreak: number; hakuUnlocked: boolean; completedMissionIds?: string[] }
-export const progressionRules = { initialCharacterIds, haku: hakuMission, provisionalRankPerWin:true, qualifyingCharacterPoints:true, trainingProgress:true }
+// A liberação inicial é declarada em unlockRequirement no index.ts de cada personagem.
+export const initialCharacterIds = characters.filter(character => character.unlockRequirement.type === 'none').map(character => character.id)
+export const progressionRules = { initialCharacterIds, missions: characterMissions, provisionalRankPerWin: true, trainingProgress: true }
+
 export function canUseCharacter(id: string, progress?: AccountProgression | null): boolean {
-  return (initialCharacterIds as readonly string[]).includes(id) || id === hakuMission.rewardCharacterId && progress?.hakuUnlocked === true
+  const character = characters.find(character => character.id === id)
+  if (!character) return false
+  if (character.unlockRequirement.type === 'none') return true
+  const missionId = character.unlockRequirement.missionId
+  const mission = characterMissions.find(mission => mission.id === missionId)
+  return !!mission && getMissionProgress(mission, progress).completed
 }
+
 export function characterUnlockText(id: string, progress?: AccountProgression | null): string {
-  if ((initialCharacterIds as readonly string[]).includes(id)) return 'Personagem inicial'
-  if (id === hakuMission.rewardCharacterId) return progress?.hakuUnlocked ? `Missão ${hakuMission.name} concluída` : `${hakuMission.name}: ${missionGoalText(hakuMission)} Rank mínimo: ${hakuMission.minimumRank} (nível ${hakuMission.minimumLevel}).`
-  return 'Missão de desbloqueio em breve'
+  const character = characters.find(character => character.id === id)
+  if (!character) return 'Personagem indisponível'
+  if (character.unlockRequirement.type === 'none') return 'Personagem inicial'
+  const missionId = character.unlockRequirement.missionId
+  const mission = characterMissions.find(mission => mission.id === missionId)
+  if (!mission) return 'Missão indisponível'
+  return getMissionProgress(mission, progress).completed
+    ? `Missão ${mission.name} concluída`
+    : `${mission.name}: ${missionGoalText(mission)} Rank mínimo: ${mission.minimumRank} (nível ${mission.minimumLevel}).`
 }

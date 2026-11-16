@@ -72,6 +72,7 @@ const deflection: AbilityDefinition = {
   statuses: [{ id: `${characterId}-deflection`, name: 'Airwave Deflection', duration: { type: 'opponent-turns', turns: 1 }, modifiers: [{ type: 'invulnerable' }] }],
 }
 
+// ORDEM NA LISTA: para mover só este personagem, use order: { position: 4 }, por exemplo.
 export default defineCharacter({
   id: characterId, name: 'Abumi Zaku', image: portrait,
   description: 'Abumi Zaku é um dos três genin do Som enviados para os exames chuunin. Ele foi cirurgicamente alterado com tubos ocos em seus braços, permitindo-lhe criar ondas de ar comprimido.',

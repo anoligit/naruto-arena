@@ -69,7 +69,7 @@ export class ArenaRoom extends DurableObject {
     }
     if (new URL(request.url).pathname === '/__match') {
       const accountId=request.headers.get('X-Arena-Account'),room=this.rooms.rooms.get(this.code)
-      if(roomResult(room??{},game.hakuMission) && !room.resultSaved)await this.persist()
+      if(roomResult(room??{},game.characterMissions) && !room.resultSaved)await this.persist()
       return Response.json({active:!!room && room.session?.battle.phase!=='finished' && [...room.seats.values()].some(seat=>seat.account?.id===accountId)})
     }
     const code = request.headers.get('X-Arena-Room'), mode = request.headers.get('X-Arena-Mode')
@@ -131,7 +131,7 @@ export class ArenaRoom extends DurableObject {
   }
   async persist() {
     const room = this.rooms.rooms.get(this.code)
-    const result=room&&roomResult(room,game.hakuMission)
+    const result=room&&roomResult(room,game.characterMissions)
     if(result&&!room.resultSaved) {
       // Primeiro grava a prova da partida no Durable Object. Se a confirmação
       // no D1 falhar ou o objeto hibernar, o mesmo resultado será reaplicado uma só vez.

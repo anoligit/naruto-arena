@@ -262,6 +262,7 @@ const ability4: AbilityDefinition = {
   ]
 }
 
+// ORDEM NA LISTA: para mover só este personagem, use order: { position: 4 }, por exemplo.
 export default defineCharacter({
   "id": "classico-haku",
   "name": "Haku",
@@ -274,6 +275,8 @@ export default defineCharacter({
   // Edite a missão AQUI. Tela, descrições e validação do servidor leem este bloco.
   mission: {
     id: 'haku', // Identificador permanente: mantenha para preservar o progresso salvo.
+    // Somente compatibilidade das contas antigas; novas missões não precisam deste bloco.
+    legacyProgress: { streakColumn: 'haku_streak', unlockedColumn: 'haku_unlocked', streakField: 'hakuStreak', unlockedField: 'hakuUnlocked' },
     name: 'A Neve Esquecida pela Névoa', // Nome da missão: pode alterar.
     category: 'Missões D e C',
     image: missionImage,
@@ -283,6 +286,7 @@ export default defineCharacter({
     objective: {
       type: 'consecutive-wins',
       consecutiveWins: 2,
+      pointsPerWin: 'per-required-character', // Naruto + Sasuke na mesma vitória somam dois pontos.
       charactersAnyOf: ['classico-naruto', 'classico-sasuke'],
     },
   },

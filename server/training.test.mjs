@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { PrivateRooms } from './rooms.mjs'
 import { multiplayerVersion } from './dist/engine.mjs'
 import { roomResult } from './progression.mjs'
-import { hakuMission } from './dist/engine.mjs'
+import { characterMissions } from './dist/engine.mjs'
+const hakuMission=characterMissions.find(m=>m.id==='haku')
 const account={id:'training-owner',username:'Ninja',profile:{level:6},progression:{hakuUnlocked:false}}
 const team=['classico-naruto','classico-sasuke','classico-sakura']
 let now=1000
@@ -35,7 +36,7 @@ command({type:'confirm-surrender'})
 assert.equal(socket.messages.length,before,'Final result is withheld until the account transaction commits')
 assert.equal(room.session.battle.winnerId,'player-2')
 const result=roomResult(room,hakuMission)
-assert.equal(result.players.length,1);assert.equal(result.players[0].outcome,'loss');assert.equal(result.players[0].points,2)
+assert.equal(result.players.length,1);assert.equal(result.players[0].outcome,'loss');assert.equal(result.players[0].missions[0].points,2)
 room.resultSaved=true;rooms.publish(room)
 assert.equal(socket.messages.at(-1).snapshot.session.battle.phase,'finished')
 assert.equal(rooms.currentMatch(account.id),null)

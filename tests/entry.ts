@@ -1,4 +1,6 @@
 export * from '../src/characters/registry'
+import { characterMissions } from '../src/missions'
+export const hakuMission = characterMissions.find(mission => mission.id === 'haku')!
 export * from '../src/characters/definition'
 export { orderCharacterCatalog } from '../src/characters/catalogOrder'
 export * from '../src/game/effects'
@@ -115,3 +117,6 @@ export { accountRequest, AccountRequestError } from '../src/account/api'
 export { executeSkillEffects } from '../src/game/effects/execution'
 
 export { getOngoingSkills } from '../src/game/ongoingSkills'
+
+export { validateCharacterCatalog } from '../src/characters/validation'
+export { getMissionProgress } from '../src/missions/progress'

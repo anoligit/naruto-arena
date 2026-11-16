@@ -1,7 +1,7 @@
-import { progressionSchema, progression, progressProfile, resultStatements } from './progression.mjs'
+import { progressionSchema, progression, progressProfile, resultStatements, missionMigrations } from './progression.mjs'
 import { lifetime, digest, normalize, reject, text, credentials, passwordKey } from './account-rules.mjs'
 export { AccountError } from './account-rules.mjs'
-import { avatarIds as defaultAvatarIds } from './dist/engine.mjs'
+import { avatarIds as defaultAvatarIds, characterMissions as defaultMissions } from './dist/engine.mjs'
 import { DatabaseSync } from 'node:sqlite'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
@@ -10,8 +10,8 @@ import { fileURLToPath } from 'node:url'
 
 
 export class Accounts {
-  constructor({ file = path.join(process.env.ARENA_DATA_DIR ?? fileURLToPath(new URL('./data/', import.meta.url)), 'accounts.sqlite'), now = Date.now, characterIds = [], avatarIds = defaultAvatarIds } = {}) {
-    this.now = now; this.characterIds = new Set(characterIds); this.avatarIds = new Set(avatarIds); this.busy = 0
+  constructor({ file = path.join(process.env.ARENA_DATA_DIR ?? fileURLToPath(new URL('./data/', import.meta.url)), 'accounts.sqlite'), now = Date.now, characterIds = [], avatarIds = defaultAvatarIds, missions = defaultMissions } = {}) {
+    this.missions = missions; this.now = now; this.characterIds = new Set(characterIds); this.avatarIds = new Set(avatarIds); this.busy = 0
     if (file !== ':memory:') mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 })
     this.db = new DatabaseSync(file)
     this.db.exec(`PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;
@@ -25,6 +25,7 @@ export class Accounts {
         expires_at INTEGER NOT NULL
       ); CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);`)
     this.db.exec(progressionSchema)
+    for (const [sql,args] of missionMigrations(this.missions)) this.db.prepare(sql).run(...args)
     this.fakeSalt = randomBytes(16)
   }
   close() { this.db.close() }
@@ -34,7 +35,7 @@ export class Accounts {
     return { id: row.id, username: row.username, email: row.email, createdAt: new Date(row.created_at).toISOString(),
       avatarId: (this.avatarIds.has(row.avatar_id) || this.characterIds.has(row.avatar_id)) ? row.avatar_id : null,
       team: JSON.parse(row.team_json).map(id => this.characterIds.has(id) ? id : null),
-      progression: progression(progress), profile: progressProfile(progress,row.username) }
+      progression: progression(progress,this.db.prepare('SELECT * FROM account_missions WHERE account_id=?').all(row.id),this.missions), profile: progressProfile(progress,row.username) }
   }
   session(token) {
     if (!text(token) || !/^[A-Za-z0-9_-]{43}$/.test(token)) return null

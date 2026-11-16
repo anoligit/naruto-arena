@@ -96,6 +96,7 @@ const butterfly: AbilityDefinition = { skill: {
   cost: {}, cooldown: 0, target: 'self', classes: ['chakra', 'instant'], effects: [],
 } }
 
+// ORDEM NA LISTA: para mover só este personagem, use order: { position: 4 }, por exemplo.
 export default defineCharacter({
   id, name: 'Akimichi Chouji', image: image0,
   description: "Um Genin da Equipe 10, Chouji é um membro do clã Akimichi, um grande comedor e um amigo próximo de seus aliados. Embora seja naturalmente forte, Chouji é capaz de sacrificar sua própria vida usando pílulas especiais de seu clã para se tornar extremamente poderoso.",

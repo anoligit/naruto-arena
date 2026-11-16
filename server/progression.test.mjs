@@ -4,7 +4,8 @@ import { Accounts } from './accounts.mjs'
 import { PrivateRooms } from './rooms.mjs'
 import { roomResult, progressProfile, provisionalRanks } from './progression.mjs'
 import { newRoomCode } from './matchmaking.mjs'
-import { characters, canUseCharacter, multiplayerVersion, hakuMission } from './dist/engine.mjs'
+import { characters, canUseCharacter, multiplayerVersion, characterMissions } from './dist/engine.mjs'
+const hakuMission=characterMissions.find(m=>m.id==='haku')
 const accounts=new Accounts({file:':memory:',characterIds:characters.map(c=>c.id)})
 const naruto=['classico-naruto','classico-kin','classico-rin'],sasuke=['classico-sasuke','classico-kiba','classico-tenten'],other=['classico-shino','classico-chouji','classico-ino']
 try {

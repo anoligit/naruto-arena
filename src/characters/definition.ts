@@ -1,4 +1,5 @@
 import type { SkillDefinition, StatusDefinition } from '../game/types'
+import type { CharacterOrder } from './order'
 import type { UnlockRequirement, CharacterMission } from '../missions/definition'
 
 export type CharacterInfo = {
@@ -22,14 +23,14 @@ export type AbilityDefinition = {
 
 export type CharacterDefinition = CharacterInfo & {
   id: string
-  order?: number
+  order?: CharacterOrder
   abilities: AbilityDefinition[]
 }
 
 export type CharacterModule = {
   character: Character
   statuses: StatusDefinition[]
-  order?: number
+  order?: CharacterOrder
 }
 
 export function getBaseSkills(character: Character): SkillDefinition[] {

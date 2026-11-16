@@ -152,6 +152,7 @@ export type StatusDefinition = {
   consecutiveHarmful?: { stages: string[]; idleTurns: number; idleStatusId: string }
   onStacksReach?: { count: number; statusId: string }
   indicatorNote?: string
+  indicator?: { name?: string; image?: string }
   periodicOn?: 'every-turn'
   periodicInterval?: number
   periodicEffects?: SkillEffect[]

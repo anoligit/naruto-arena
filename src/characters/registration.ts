@@ -1,4 +1,5 @@
 import { validCharacterMission } from '../missions/definition'
+import { validCharacterOrder, sortCharacterEntries } from './order'
 import type { Character, CharacterModule } from './definition'
 import type { StatusDefinition } from '../game/types'
 
@@ -18,7 +19,7 @@ function readModule(value: unknown, missionIds: Set<string>): CharacterModule | 
   if (!module || !hasId(module.character) || typeof module.character.name !== 'string' || !module.character.name.trim()) return null
   if (!Array.isArray(module.character.skillDefinitions) || !module.character.skillDefinitions.every(hasId)) return null
   if (!Array.isArray(module.statuses) || !module.statuses.every(hasId)) return null
-  if (module.order !== undefined && (!Number.isFinite(module.order) || typeof module.order !== 'number')) return null
+  if (!validCharacterOrder(module.order)) return null
   if (!module.character.unlockRequirement) return null
   const requirement = module.character.unlockRequirement
   if (requirement.type !== 'none' && (requirement.type !== 'mission' || !missionIds.has(requirement.missionId))) return null
@@ -46,11 +47,20 @@ export function collectCharacterModules(
     }
     candidates.push({ path, module })
   }
-  candidates.sort((a, b) => (a.module.order ?? 1000) - (b.module.order ?? 1000) || a.path.localeCompare(b.path))
+  const requestedPositions = new Map<number, string>()
+  for (const candidate of candidates) {
+    const order = candidate.module.order
+    if (order && typeof order === 'object') {
+      const previous = requestedPositions.get(order.position)
+      if (previous) result.issues.push({ path: candidate.path, message: `Posição exata ${order.position} também solicitada por ${previous}.` })
+      requestedPositions.set(order.position, candidate.path)
+    }
+  }
+  const orderedCandidates = sortCharacterEntries(candidates)
   const characterIds = new Set<string>()
   const skillIds = new Set<string>()
   const statusIds = new Set(commonStatuses.map((status) => status.id))
-  for (const { path, module } of candidates) {
+  for (const { path, module } of orderedCandidates) {
     const character = module.character
     const skills = character.skillDefinitions ?? []
     const ownSkillIds = skills.map((skill) => skill.id)

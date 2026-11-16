@@ -7,13 +7,12 @@ export const characterMissions: MissionDefinition[] = characters.flatMap(charact
 if(new Set(characterMissions.map(m=>m.id)).size!==characterMissions.length)throw new Error('Use um ID diferente para cada missão no index.ts dos personagens.')
 export const missions: Record<string, {name:string}> = Object.fromEntries(characterMissions.map(mission=>[mission.id,mission]))
 export type MissionId = string
-const haku = characterMissions.find(mission=>mission.id==='haku')
-if (!haku) throw new Error('Cadastre a missão haku no index.ts do Haku.')
-export const hakuMission = haku
 export function missionGoalText(mission: MissionDefinition): string {
   const count=mission.objective.consecutiveWins
   const names=mission.objective.charactersAnyOf.map(id=>characters.find(c=>c.id===id)?.name??id).join(' ou ')
-  return `Ganhar ${count} ${count===1?'partida seguida':'partidas seguidas'} com ${names}`
+  return mission.objective.pointsPerWin === 'one'
+    ? `Ganhar ${count} ${count===1?'partida seguida':'partidas seguidas'} com ${names}`
+    : `Somar ${count} ${count===1?'ponto':'pontos'} em vitórias seguidas com ${names}. Cada personagem exigido presente soma um ponto por vitória.`
 }
 export function missionRequirementsMet(mission: MissionDefinition, level: number, completed: readonly string[] = []): boolean {
   return level>=mission.minimumLevel && mission.prerequisiteMissionIds.every(id=>completed.includes(id))

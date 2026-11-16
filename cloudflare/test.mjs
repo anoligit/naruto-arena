@@ -1,3 +1,6 @@
+import { CloudAccounts } from './accounts.mjs'
+import { roomResult } from '../server/progression.mjs'
+import * as game from './generated/engine.mjs'
 import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -124,7 +127,9 @@ try {
   assert.equal(other.last().session.queue.length,0)
   assert.equal(other.last().players.find(player=>player.id===other.last().you).missedTurns,1)
   pass('The persisted alarm expires the next turn automatically after hibernation without browser commands')
-  const resumedTurn=active.last().session.battle.turnNumber
+  // Os dois sockets recebem a atualização separadamente; aguarde também o emissor.
+  const resumedState=await active.wait(m=>m.type==='state'&&m.snapshot.session?.battle.turnNumber===turn+2)
+  const resumedTurn=resumedState.snapshot.session.battle.turnNumber
   active.send({type:'command',seq:++seq,turn:resumedTurn,command:{type:'open-surrender'}})
   active.send({type:'command',seq:++seq,turn:resumedTurn,command:{type:'confirm-surrender'}})
   await active.wait(m=>m.type==='state'&&m.snapshot.session?.battle.phase==='finished')
@@ -253,6 +258,24 @@ try {
   assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM account_results WHERE match_id=(SELECT match_id FROM account_results WHERE account_id=? ORDER BY completed_at DESC LIMIT 1)').bind(friend.id).first()).n,1)
   trainee.socket.close()
   pass('Account training validates owned teams and origin, resumes one match, executes server AI, survives hibernation and saves only the human result once')
+  // Uma nova missão configurada em dados usa o mesmo D1, sem novas colunas ou código por personagem.
+  const configuredMission={...game.characterMissions[0],id:'fixture-new-mission',legacyProgress:undefined,minimumLevel:1,
+    objective:{type:'consecutive-wins',consecutiveWins:2,charactersAnyOf:['classico-naruto','classico-sasuke'],pointsPerWin:'one'}}
+  const configuredAccounts=new CloudAccounts(db,game.characters.map(c=>c.id),[...game.characterMissions,configuredMission])
+  const previousWins=(await configuredAccounts.session(friendCookie.split('=')[1])).profile.wins
+  for(let count=1;count<=2;count++){
+    const current=await configuredAccounts.session(friendCookie.split('=')[1])
+    const fixtureRoom={mode:'training',resultId:crypto.randomUUID(),session:{now:Date.now(),battle:{phase:'finished',winnerId:'player-1'}},
+      seats:new Map([['player-1',{account:current,team:['classico-naruto','classico-sasuke','classico-sakura'].map(id=>game.characters.find(c=>c.id===id))}]])}
+    const result=roomResult(fixtureRoom,configuredAccounts.missions)
+    await configuredAccounts.recordResult(result);await configuredAccounts.recordResult(result)
+    const updated=await configuredAccounts.session(friendCookie.split('=')[1])
+    assert.equal(updated.progression.missionProgress[configuredMission.id].streak,count)
+    assert.equal(updated.progression.missionProgress[configuredMission.id].completed,count===2)
+    assert.equal(updated.profile.wins,previousWins+count)
+    assert.equal(updated.progression.hakuUnlocked,true)
+  }
+  pass('New data-defined missions persist independently in D1, obey per-win scoring, preserve prior unlocks and reject repeated result counting')
   const forbidden=await api('logout',{method:'POST',cookie:loginCookie,foreign:true});assert.equal(forbidden.status,403)
   response=await api('logout',{method:'POST',cookie:loginCookie});assert.equal(response.status,200)
   response=await api('session',{cookie:loginCookie});assert.equal((await response.json()).account,null)

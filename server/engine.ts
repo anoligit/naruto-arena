@@ -13,7 +13,7 @@ export { avatarIds } from '../src/account/avatarCatalog'
 
 export { canUseCharacter } from '../src/missions/progression'
 
-export { hakuMission } from '../src/missions'
+export { characterMissions } from '../src/missions'
 
 export { createTrainingBattle } from '../src/game/training/createTrainingBattle'
 export { runComputerTurn } from '../src/game/training/computer'

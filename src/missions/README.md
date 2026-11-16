@@ -1,13 +1,14 @@
-# Editar a missão do Haku
+# Missões declaradas no personagem
 
-Abra `src/characters/classico/haku/index.ts`. Perto do final, dentro de `defineCharacter`, está o bloco `mission`.
+Toda configuração editável de uma missão fica em `src/characters/classico/<pasta>/index.ts`. A referência atual é `classico/haku/index.ts`.
 
 ```ts
+unlockRequirement: { type: 'mission', missionId: 'id-permanente' },
 mission: {
-  id: 'haku',
-  name: 'A Neve Esquecida pela Névoa', // Coloque o nome que quiser.
+  id: 'id-permanente',
+  name: 'Nome da missão',
   category: 'Missões D e C',
-  image: missionImage,
+  image: missionImage, // Import de uma imagem da própria pasta.
   minimumRank: 'Genin',
   minimumLevel: 6,
   prerequisiteMissionIds: [],
@@ -15,22 +16,25 @@ mission: {
     type: 'consecutive-wins',
     consecutiveWins: 2,
     charactersAnyOf: ['classico-naruto', 'classico-sasuke'],
+    pointsPerWin: 'one',
   },
 },
 ```
 
-- **Nome:** altere `name`. A página da missão e a descrição de desbloqueio usam esse mesmo nome.
-- **Foto:** a imagem atual está em `src/characters/classico/haku/Haku_mission.jpg`. No topo do `index.ts`, `import missionImage from './Haku_mission.jpg'` vincula esse arquivo à missão. Para trocar a foto, substitua o arquivo mantendo o nome ou edite esse import com o novo nome exato. O retrato do personagem não é alterado.
-- **Tipo:** altere `category` para o texto da categoria mostrado na página.
-- **Rank e nível:** `minimumRank` é o nome exibido; `minimumLevel` é o limite aplicado pelo servidor. Ajuste os dois em conjunto. A tabela de níveis ainda é provisória.
-- **Missões anteriores:** `prerequisiteMissionIds` recebe os IDs das missões concluídas necessárias. Vazio significa nenhum pré-requisito.
-- **Vitórias:** `consecutiveWins` define a quantidade exigida. O contador mostrado e a validação do servidor usam esse número.
-- **Personagens exigidos:** `charactersAnyOf` recebe IDs dos personagens. Basta um deles estar no time; o texto do objetivo é montado com seus nomes.
+A recompensa é o personagem que contém a missão. Para um personagem inicial, use apenas `unlockRequirement: { type: 'none' }`. A lista de iniciais é calculada automaticamente.
 
-A recompensa é o próprio personagem que contém o bloco. Mantenha `id: 'haku'`: ele identifica o progresso já salvo. O tipo de objetivo implementado atualmente é `consecutive-wins`; outros tipos de objetivo precisam de uma regra própria no servidor. A persistência disponível nesta etapa é a da missão do Haku.
+- `pointsPerWin: 'one'`: cada vitória elegível soma um ponto.
+- `pointsPerWin: 'per-required-character'`: cada personagem exigido presente soma um ponto; este é o comportamento mantido do Haku e o padrão quando o campo não é informado.
+- `consecutiveWins` é o total de pontos exigido. O texto e o contador são gerados a partir da configuração.
+- `charactersAnyOf` exige ao menos um dos personagens. Times sem nenhum deles não avançam nem reiniciam o contador.
+- `minimumLevel` é verificado antes da partida; a vitória que promove ainda não conta.
+- `minimumRank` é o rótulo mostrado junto do nível mínimo.
+- `prerequisiteMissionIds` exige missões já concluídas antes da partida. Referências ausentes e ciclos são detectados no cadastro.
 
-Depois de editar ou adicionar a foto, use `npm run cf:deploy` para compilar, testar e publicar. No servidor do Mac, reinicie com `npm run online`. Editar o código local não altera sozinho a versão já publicada.
+Somente partidas rápidas e treinamentos autenticados contam. Derrota ou empate com um time elegível reinicia a sequência. Um desbloqueio concluído é permanente. Repetir o registro de um resultado não soma pontos novamente.
 
-`src/missions/index.ts` lê os blocos dos personagens para construir o catálogo; não há outra cópia do nome, imagem ou requisitos para atualizar. `definition.ts` contém os tipos e a validação do formato. A referência antiga “Time 7 Luta como uma Equipe” continua disponível para os personagens OLD.
+O banco guarda o progresso por conta e ID de missão em `account_missions`. Node e Cloudflare usam a mesma regra. Adicionar uma missão no personagem não exige editar o servidor nem criar uma nova migração. A migração `0004` e `legacyProgress` no Haku preservam os contadores e desbloqueios do formato anterior; não remova ou renomeie esses identificadores históricos.
 
-Na sequência de vitórias, somente partidas com ao menos um personagem de `charactersAnyOf` são consideradas. Partidas com outros times não avançam nem reiniciam o contador. Partidas rápidas e treinamentos de contas autenticadas contam. Privadas e treinamentos como visitante são ignorados. Cada personagem exigido presente soma um ponto por vitória; Naruto e Sasuke juntos somam dois. O nível mínimo é verificado antes de começar a partida.
+Imagens, nomes, requisitos e objetivos são lidos do mesmo cadastro pela seleção, tela de missões e servidor. Não edite cópias em `src/missions/index.ts`: esse arquivo apenas reúne as declarações. Novos tipos de objetivo ainda exigem suporte no avaliador compartilhado.
+
+Execute as verificações locais e compile/publice para as alterações chegarem à beta. A migração preparada no código não altera sozinha o banco real.

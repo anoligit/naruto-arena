@@ -68,8 +68,8 @@ export function getCharacterIndicators(
     if (isActionSuppressed(battle, member, active)) lines.push('Efeito Action temporariamente suspenso.')
     return {
       id: auraLines ? `aura:${active.sourceCharacterId}:${active.instanceId}` : active.instanceId,
-      name: skill?.name ?? definition?.name ?? active.statusId,
-      image: skill?.image,
+      name: definition?.indicator?.name ?? skill?.name ?? definition?.name ?? active.statusId,
+      image: definition?.indicator?.image ?? skill?.image,
       lines: [`Origem: ${sourceDefinition?.name ?? 'personagem'} · ${playerName(active.sourcePlayerId)}.`, ...lines],
       duration: formatStatusDuration(battle, active),
       sourceCharacterId: source?.instanceId ?? member.instanceId,
@@ -103,7 +103,8 @@ export function getCharacterIndicators(
     const affectedDefinition = characters.find((entry) => entry.id === affected?.characterId)
     const affectedOwner = Object.values(battle.players).find((player) => player.team.some((character) => character.instanceId === report.affectedCharacterId))
     const counteredName = `${actorDefinition?.name ?? 'personagem'} · ${playerName(report.counteredPlayerId)}`
-    const counterName = counterSkill?.name ?? statuses.find((entry) => entry.id === report.counterStatusId)?.name ?? report.counterStatusId
+    const counterDefinition = statuses.find((entry) => entry.id === report.counterStatusId)
+    const counterName = counterDefinition?.indicator?.name ?? counterSkill?.name ?? counterDefinition?.name ?? report.counterStatusId
     const outcomes = {
       countered: 'A habilidade ofensiva foi counterada e cancelada por completo.',
       reflected: `A habilidade foi refletida. Destino do retorno: ${counteredName}.`,
@@ -117,7 +118,7 @@ export function getCharacterIndicators(
       id: report.id,
       counterReport: true,
       name: `Counter: ${counterName}`,
-      image: counterSkill?.image,
+      image: counterDefinition?.indicator?.image ?? counterSkill?.image,
       lines: [
         `Habilidade counterada: ${counteredSkill?.name ?? report.counteredSkillId} de ${counteredName}.`,
         `Counter aplicado por: ${counterName} de ${sourceDefinition?.name ?? 'personagem'} · ${playerName(report.counterPlayerId)}.`,

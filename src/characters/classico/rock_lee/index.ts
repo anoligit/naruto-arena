@@ -270,6 +270,7 @@ const ability5: AbilityDefinition = {
   }
 }
 
+// ORDEM NA LISTA: para mover só este personagem, use order: { position: 4 }, por exemplo.
 export default defineCharacter({
   "id": "classico-lee",
   "name": "Rock Lee",

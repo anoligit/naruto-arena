@@ -1,18 +1,18 @@
 import { progression, progressProfile, resultStatements } from '../server/progression.mjs'
-import { avatarIds } from './generated/engine.mjs'
+import { avatarIds, characterMissions } from './generated/engine.mjs'
 import { Buffer } from 'node:buffer'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { credentials, digest, lifetime, normalize, passwordKey, reject, text } from '../server/account-rules.mjs'
 
 export class CloudAccounts {
-  constructor(db, characterIds) { this.db = db; this.ids = new Set(characterIds); this.avatarIds = new Set(avatarIds); this.busy = 0; this.fakeSalt = randomBytes(16) }
+  constructor(db, characterIds, missions = characterMissions) { this.missions = missions; this.db = db; this.ids = new Set(characterIds); this.avatarIds = new Set(avatarIds); this.busy = 0; this.fakeSalt = randomBytes(16) }
   async publicAccount(row) {
     if (!row) return null
     const progress=await this.db.prepare('SELECT * FROM account_progress WHERE account_id=?').bind(row.id).first()
     return { id: row.id, username: row.username, email: row.email, createdAt: new Date(row.created_at).toISOString(),
       avatarId: (this.avatarIds.has(row.avatar_id) || this.ids.has(row.avatar_id)) ? row.avatar_id : null,
       team: JSON.parse(row.team_json).map(id => this.ids.has(id) ? id : null),
-      progression: progression(progress), profile: progressProfile(progress,row.username) }
+      progression: progression(progress,(await this.db.prepare('SELECT * FROM account_missions WHERE account_id=?').bind(row.id).all()).results,this.missions), profile: progressProfile(progress,row.username) }
   }
   async recordResult(result) {await this.db.batch(resultStatements(result).map(([sql,args])=>this.db.prepare(sql).bind(...args)))}
   async sessionHash(hash) {

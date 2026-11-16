@@ -1,7 +1,7 @@
 import { roomResult } from './progression.mjs'
 import { Accounts } from './accounts.mjs'
 import { accountHandler, sessionToken, allowedOrigin, readAccountBody } from './account-http.mjs'
-import { characters, hakuMission } from './dist/engine.mjs'
+import { characters, characterMissions } from './dist/engine.mjs'
 import http from 'node:http'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -46,7 +46,7 @@ export async function startServer({ port = Number(process.env.PORT ?? 3001), hos
     createMatch:entries=>{let code;do{code=newRoomCode()}while(rooms.rooms.has(code));rooms.prepareQuick(code,entries);return code}})
   const settleResults=()=>{
     for(const room of rooms.rooms.values()) {
-      const result=roomResult(room,hakuMission)
+      const result=roomResult(room,characterMissions)
       if(result&&!room.resultSaved)try{accounts.recordResult(result);room.resultSaved=true;rooms.publish(room)}catch{console.error('Não foi possível salvar um resultado. O servidor tentará novamente.')}
     }
   }
